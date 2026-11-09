@@ -1,0 +1,50 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --navy:     #0A0A0F;
+  --teal:     #00FF88;
+  --teal-dim: rgba(0,255,136,0.10);
+  --green:    #00FF88;
+  --yellow:   #FFD60A;
+  --red:      #FF3B5C;
+  --blue:     #4D9EFF;
+  --purple:   #BF5AF2;
+  --border:   rgba(255,255,255,0.08);
+  --border2:  rgba(255,255,255,0.15);
+  --muted:    rgba(255,255,255,0.35);
+  --sub:      rgba(255,255,255,0.60);
+  --bg:       #0A0A0F;
+  --surface:  rgba(255,255,255,0.04);
+  --text:     #FFFFFF;
+}
+
+html { font-size: 16px; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: #0A0A0F;
+  color: #FFFFFF;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input  { font-family: inherit; }
+
+/* Neon scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,255,136,0.3); border-radius: 99px; }
+
+::selection { background: #00FF88; color: #0A0A0F; }
+
+/* Neon glow animations */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(0,255,136,0.4); }
+  50% { box-shadow: 0 0 20px rgba(0,255,136,0.8); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
