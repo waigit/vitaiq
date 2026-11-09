@@ -3,42 +3,26 @@
 Free Apple Watch health dashboard + nutrition tracking + AI coach.
 Rebuilt on 9 Nov 2026 from the live site (deploy of 16 Sep 2026) after the iMac was reformatted, plus the newer dashboard.
 
-## Set up on a fresh Mac (once)
+## How changes go live (no Mac needed)
 
-1. Install **Node.js LTS** from https://nodejs.org (the macOS installer).
-2. In Terminal:
-   ```
-   sudo npm install -g netlify-cli
-   netlify login
-   ```
-3. Unzip this project into `~/Downloads/vitaiq_deploy`, then:
-   ```
-   cd ~/Downloads/vitaiq_deploy
-   npm install
-   netlify link
-   ```
-   Choose **"Search by full or partial project name"** → `vitalstats`.
+Code lives on GitHub at **waigit/vitaiq** (branch `main`). Netlify project **vitalstats** is linked to it:
+every push to `main` is built by Netlify (`npm run build`, publish `dist`, functions `netlify/functions`,
+all from `netlify.toml`) and published to https://vitalstats.netlify.app automatically.
 
-## Deploy
+- Ask Claude (any device) for a change → it pushes to `main` → live in ~2 minutes.
+- Or edit a file on github.com and commit to `main`.
+- A failed build never publishes — the previous version stays live.
+- Deploy history: Netlify → vitalstats → Deploys.
+
+## Working on a computer (optional)
 
 ```
-cd ~/Downloads/vitaiq_deploy
-npm run build && netlify deploy --prod --dir=dist --functions=netlify/functions
+git clone https://github.com/waigit/vitaiq && cd vitaiq
+npm install
+npm i -g netlify-cli && netlify login && netlify link   # pick vitalstats
+netlify dev     # local test incl. AI functions
 ```
-
-Test locally first (AI features need this, plain `npm run dev` has no functions):
-```
-netlify dev
-```
-
-## Never lose the code again — put it on GitHub (once)
-
-1. Make a free account at https://github.com and install **GitHub Desktop** (https://desktop.github.com).
-2. GitHub Desktop → File → **Add Local Repository** → pick `~/Downloads/vitaiq_deploy` → it offers to "create a repository" → yes.
-3. Click **Publish repository**, keep **"Keep this code private"** ticked.
-4. Optional but recommended: Netlify → vitalstats → Project configuration → Build & deploy → **Link repository** → pick the GitHub repo. From then on every change pushed to GitHub deploys automatically — and Claude can push changes for you without your Mac.
-
-`.gitignore` already keeps `node_modules`, `dist`, `.netlify` and any `.env` file out of GitHub.
+Commit and push to `main` to deploy — no `netlify deploy` needed.
 
 ## Netlify environment variables (already set on Netlify — nothing to do)
 
