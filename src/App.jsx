@@ -3,6 +3,7 @@ import Landing from './components/Landing.jsx'
 import Dashboard from './components/Dashboard.jsx'
 import Admin from './components/Admin.jsx'
 import { getOrCreateUser, FREE_UPLOAD_LIMIT } from './lib/supabase.js'
+import { mergeUpload, clearHistory } from './lib/history.js'
 
 function getSavedData() {
   try {
@@ -50,7 +51,10 @@ function App() {
     S();
   }, []);
   const v = (S, j) => {
-      saveData(S), i(S), j !== undefined && a(j), r("dashboard");
+      // Merge this upload into the history kept on this device, so trends keep growing
+      let merged = S;
+      try { merged = mergeUpload(S) } catch (err) { console.warn('history merge failed:', err) }
+      saveData(merged), i(merged), j !== undefined && a(j), r("dashboard");
     },
     w = () => {
       r("dashboard");
@@ -68,7 +72,7 @@ function App() {
     m = () => {
       i(null), p(true), r("dashboard");
     };
-  return t === "admin" ? <Admin onBack={() => r("landing")} /> : t === "dashboard" ? <Dashboard healthData={n} uploadCount={o} freeLimit={FREE_UPLOAD_LIMIT} onBack={x} lang={u} onLangChange={h} nutritionOnly={c} initialTab={c ? "nutrition" : "today"} /> : <Landing onUpload={v} onLimitReached={w} uploadCount={o} freeLimit={FREE_UPLOAD_LIMIT} onDemo={y} onNutritionOnly={m} onGoToDashboard={g} hasExistingData={!!getSavedData()} lastUploadedAt={(b = (O = getSavedData()) == null ? undefined : O.meta) == null ? undefined : b.uploadedAt} lang={u} onLangChange={h} />;
+  return t === "admin" ? <Admin onBack={() => r("landing")} /> : t === "dashboard" ? <Dashboard healthData={n} uploadCount={o} freeLimit={FREE_UPLOAD_LIMIT} onBack={x} lang={u} onLangChange={h} nutritionOnly={c} initialTab={c ? "nutrition" : "today"} onClearHistory={() => { clearHistory(); saveData(null); i(null); r("landing"); }} /> : <Landing onUpload={v} onLimitReached={w} uploadCount={o} freeLimit={FREE_UPLOAD_LIMIT} onDemo={y} onNutritionOnly={m} onGoToDashboard={g} hasExistingData={!!getSavedData()} lastUploadedAt={(b = (O = getSavedData()) == null ? undefined : O.meta) == null ? undefined : b.uploadedAt} lang={u} onLangChange={h} />;
 }
 
 export default App

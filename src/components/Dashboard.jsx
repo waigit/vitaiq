@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getAffiliates, getAffiliatesCached, weightedAffiliateRotation, uploadMealPhoto, saveNutritionLog, getNutritionHistory } from '../lib/supabase'
+import { computeStreaks, computeWeekStats, loadCheckins, computeCheckinInsights, CHECKIN_TAGS, localDay } from '../lib/insights'
+import { HistoryNote, StreaksCard, CheckInCard, CheckinInsightsCard, ShareWeekCard, InstallHint } from './Extras'
 
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -826,7 +828,7 @@ function AffiliateAICard({msgIndex=0}) {
 }
 
 
-export default function Dashboard({healthData,onBack,uploadCount=0,freeLimit=5,showLimitModal=false,onDismissLimit,lang='EN',onLangChange,nutritionOnly=false,initialTab='today'}){
+export default function Dashboard({healthData,onBack,uploadCount=0,freeLimit=5,showLimitModal=false,onDismissLimit,lang='EN',onLangChange,nutritionOnly=false,initialTab='today',onClearHistory}){
   const d = nutritionOnly ? EMPTY_HEALTH : (healthData || DEMO)
   const l = d.latest
   const m = d.monthly
@@ -952,8 +954,9 @@ export default function Dashboard({healthData,onBack,uploadCount=0,freeLimit=5,s
 
   const AI_FREE_LIMIT = 5
 
-  const handleAsk = async () => {
-    if (!askInput.trim()) return
+  const handleAsk = async (override) => {
+    const askText = typeof override === 'string' ? override : askInput
+    if (!askText.trim()) return
     if (aiMsgCount >= AI_FREE_LIMIT) {
       setShowCoffee(true)
       return
@@ -961,7 +964,7 @@ export default function Dashboard({healthData,onBack,uploadCount=0,freeLimit=5,s
     const newCount = aiMsgCount + 1
     setAiMsgCount(newCount)
     localStorage.setItem('vitaiq_ai_msgs', String(newCount))
-    const msg = askInput
+    const msg = askText
     setChat(h=>[...h,{role:'user',text:msg}])
     setAskInput(''); setChatLoading(true)
     try {
@@ -985,6 +988,8 @@ User data: ${nutritionOnly?`This person has NOT connected an Apple Watch — you
 - Sleep Efficiency: ${l.sleepEfficiency}% — time actually asleep vs time in bed
 - Sleep need tonight: ${sleepPlan?`${sleepPlan.tonight} hrs (${sleepPlan.baseSource==='personal'?`personal baseline ${sleepPlan.base}h learned from their best-recovery (high-HRV) nights`:sleepPlan.baseSource==='duration'?`personal baseline ${sleepPlan.base}h from their longest full nights`:'default 7.5h baseline, not enough nights yet'}${sleepPlan.strainExtra>0?` + ${sleepPlan.strainExtra}h for yesterday's effort`:''}); sleep debt over last ${sleepPlan.nightsInDebt} recorded nights: ${sleepPlan.debt} hrs`:'no sleep data'}
 - Training load (acute:chronic ratio, 7-day vs 28-day avg strain): ${trainingLoad&&!trainingLoad.insufficient?`${trainingLoad.ratio} — ${trainingLoad.zone} (7-day ${trainingLoad.acute}, 28-day ${trainingLoad.chronic}). 0.8–1.3 is the sweet spot; >1.5 is a load spike linked to overuse injury`:'not enough strain history (needs ~3 weeks)'}
+- Streaks (as of ${d.meta.endDate}): ${streaks.sleep?`7h+ sleep ${streaks.sleep.current} nights (best ${streaks.sleep.best})`:'no sleep data'}; ${streaks.steps?`${streaks.steps.goal} steps ${streaks.steps.current} days (best ${streaks.steps.best})`:''}; ${streaks.activeWeeks?`3+ workout weeks ${streaks.activeWeeks.current} (this week ${streaks.activeWeeks.thisWeek} workout days)`:''}
+- Self-reported check-ins (things the watch can't see; tag on day D affects HRV on D+1): ${(()=>{const c=loadCheckins();const recent=Object.keys(c).sort().slice(-7);const names=id=>(CHECKIN_TAGS.find(t=>t.id===id)||{}).label||id;const ins=computeCheckinInsights(c,d.daily?.hrv||{});return (recent.length?recent.map(k=>`${k}: ${c[k].length?c[k].map(names).join(', '):'nothing notable'}`).join('; '):'none logged')+(ins.items.length?`. Personal patterns: ${ins.items.map(i=>`${i.label} ${i.pct>0?'+':''}${i.pct}% next-day HRV (${i.n} days)`).join(', ')}`:'')})()}
 - Blood pressure: ${l.bpSystolic!=null?`${Math.round(l.bpSystolic)}/${Math.round(l.bpDiastolic)} mmHg from a cuff synced to Apple Health`:'no readings — Apple Watch cannot measure BP; never estimate or invent a BP number'}
 - Workout sessions in this export: ${d.workoutTypeCounts&&Object.keys(d.workoutTypeCounts).length?Object.entries(d.workoutTypeCounts).map(([type,count])=>`${type} ×${count}`).join(', '):'no workout data found in this export (Workouts may not have been included when exporting from Simple Health Export CSV)'}
 - Recent habit/workout patterns: ${d.habitInsights&&d.habitInsights.length?d.habitInsights.map(h=>`${h.h} (${h.e})`).join('; '):'not enough data yet for pattern insights'}
@@ -1176,6 +1181,15 @@ For every other kind of question — workouts, sleep, readiness, general advice,
   })()
 
   const todayReadiness = l.readiness||50
+
+  // ── Streaks, weekly stats, check-ins ────────────────────────────────────
+  const nutriAllDays = (() => { try { return JSON.parse(localStorage.getItem(NUTRI_STORAGE_KEY) || '{}') } catch { return {} } })()
+  const streaks = nutritionOnly ? {} : computeStreaks(d, nutriAllDays)
+  const weekStats = nutritionOnly ? null : computeWeekStats(d, {
+    sleepDebt: sleepPlan ? sleepPlan.debt : null,
+    loadZone: trainingLoad && !trainingLoad.insufficient ? trainingLoad.zone : null,
+    loadColor: trainingLoad && !trainingLoad.insufficient ? trainingLoad.color : null,
+  })
   const todayEffort = Math.round(12 + (todayReadiness/100)*6)
 
   const durLabel = d.meta.durationLabel||'your data'
@@ -1257,25 +1271,29 @@ For every other kind of question — workouts, sleep, readiness, general advice,
         </div>
       )}
 
-      <div style={{position:'relative',zIndex:10,background:'rgba(10,10,15,0.85)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'12px 20px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-        <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <button onClick={onBack} style={{background:'none',border:'none',color:'rgba(255,255,255,0.6)',fontSize:20,cursor:'pointer',padding:'0 8px 0 0',lineHeight:1}}>←</button>
-          <div style={{width:28,height:28,background:'#00FF88',borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15}}>🧬</div>
-          <div>
-            <div style={{fontSize:15,fontWeight:900,color:'#fff'}}>VitaIQ</div>
-            <div style={{fontSize:7,color:'rgba(255,255,255,0.3)',letterSpacing:1.5}}>HEALTH INTELLIGENCE</div>
+      <div style={{position:'relative',zIndex:10,background:'rgba(10,10,15,0.85)',backdropFilter:'blur(12px)',borderBottom:'1px solid rgba(255,255,255,0.08)',padding:'10px 16px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
+          <div style={{display:'flex',alignItems:'center',gap:10,minWidth:0}}>
+            <button onClick={onBack} aria-label="Back" style={{background:'none',border:'none',color:'rgba(255,255,255,0.6)',fontSize:20,cursor:'pointer',padding:'0 6px 0 0',lineHeight:1}}>←</button>
+            <div style={{width:28,height:28,background:'#00FF88',borderRadius:7,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,flexShrink:0}}>🧬</div>
+            <div>
+              <div style={{fontSize:15,fontWeight:900,color:'#fff'}}>VitaIQ</div>
+              <div style={{fontSize:7,color:'rgba(255,255,255,0.3)',letterSpacing:1.5,whiteSpace:'nowrap'}}>HEALTH INTELLIGENCE</div>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:4,alignItems:'center',flexShrink:0}}>
+            {['EN','BM','中文','தமிழ்'].map((lc,i)=>{const codes=['EN','BM','ZH','TA'];return(
+              <button key={lc} onClick={()=>onLangChange&&onLangChange(codes[i])} style={{padding:'3px 7px',borderRadius:99,fontSize:9,fontWeight:700,cursor:'pointer',border:'none',background:lang===codes[i]?'rgba(0,255,136,0.15)':'rgba(255,255,255,0.06)',color:lang===codes[i]?'#00FF88':'rgba(255,255,255,0.45)',outline:lang===codes[i]?'1px solid rgba(0,255,136,0.4)':'1px solid rgba(255,255,255,0.10)'}}>{lc}</button>
+            )})}
           </div>
         </div>
-        <div style={{display:'flex',gap:5,alignItems:'center'}}>
-          {['EN','BM','中文','தமிழ்'].map((lc,i)=>{const codes=['EN','BM','ZH','TA'];return(
-            <button key={lc} onClick={()=>onLangChange&&onLangChange(codes[i])} style={{padding:'3px 7px',borderRadius:99,fontSize:8,fontWeight:700,cursor:'pointer',border:'none',background:lang===codes[i]?'rgba(0,255,136,0.15)':'rgba(255,255,255,0.06)',color:lang===codes[i]?'#00FF88':'rgba(255,255,255,0.45)',outline:lang===codes[i]?'1px solid rgba(0,255,136,0.4)':'1px solid rgba(255,255,255,0.10)'}}>{lc}</button>
-          )})}
-          <div style={{width:1,height:14,background:'rgba(255,255,255,0.12)',margin:'0 2px'}}/>
+        <div style={{display:'flex',flexWrap:'wrap',gap:'4px 8px',alignItems:'center',marginTop:8}}>
           {nutritionOnly&&<Badge label="No Watch Connected" color={T.yellow} bg={T.yellowBg}/>}
           {!nutritionOnly&&!isDemo&&<Badge label={d.meta.durationLabel} color={T.teal} bg={T.tealLight}/>}
           {!nutritionOnly&&isDemo&&<Badge label="DEMO" color={T.yellow} bg={T.yellowBg}/>}
-          {!nutritionOnly&&!isDemo&&<span style={{fontSize:10,color:'rgba(255,255,255,0.45)'}}>{d.meta.startDate} → {d.meta.endDate}{d.meta.uploadedAt&&<span style={{color:'rgba(255,255,255,0.3)'}}> · uploaded {relativeTime(d.meta.uploadedAt)}</span>}</span>}
-          <span style={{fontSize:10,color:'rgba(255,255,255,0.45)'}}>Free · All features included</span>
+          {!nutritionOnly&&!isDemo&&<span style={{fontSize:10,color:'rgba(255,255,255,0.45)',whiteSpace:'nowrap'}}>{d.meta.startDate} → {d.meta.endDate}</span>}
+          {!nutritionOnly&&!isDemo&&d.meta.uploadedAt&&<span style={{fontSize:10,color:'rgba(255,255,255,0.3)',whiteSpace:'nowrap'}}>uploaded {relativeTime(d.meta.uploadedAt)}</span>}
+          <span style={{fontSize:10,color:'rgba(255,255,255,0.35)',whiteSpace:'nowrap',marginLeft:'auto'}}>Free · All features</span>
         </div>
       </div>
       <div style={{position:'relative',zIndex:5,display:'flex',gap:6,padding:'10px 16px',overflowX:'auto',scrollbarWidth:'none',background:'rgba(10,10,15,0.5)',backdropFilter:'blur(8px)',flexShrink:0}}>
@@ -1306,6 +1324,7 @@ For every other kind of question — workouts, sleep, readiness, general advice,
       ) : (<>
         {tab==='today'&&(
           <div style={{display:'grid',gap:12}}>
+            <InstallHint/>
             <div style={{background:`linear-gradient(135deg,${rCol(todayReadiness)}0d 0%,rgba(10,10,15,0.6) 100%)`,border:`1px solid ${rCol(todayReadiness)}33`,borderRadius:14,padding:16}}>
               <div style={{display:'flex',alignItems:'center',gap:14}}>
                 <div style={{position:'relative',flexShrink:0}}>
@@ -1353,10 +1372,11 @@ For every other kind of question — workouts, sleep, readiness, general advice,
               <div style={{fontSize:12,color:'rgba(255,255,255,0.75)',lineHeight:1.7}}>
                 {isDemo
                   ? 'Demo data — upload your Apple Watch ZIP to see your personalised brief.'
-                  : <><b style={{color:'#fff'}}>Readiness {todayReadiness}%</b> — {todayReadiness>=67?'great recovery.':todayReadiness>=33?'moderate recovery.':'low recovery. Rest today.'}{l.hrv&&l.hrvBaseline&&<> HRV ({fmt(l.hrv)}ms) vs your {fmt(l.hrvBaseline)}ms baseline.</>}<br/><b style={{color:'#fff'}}>Data:</b> {durLabel} ({d.meta.startDate} → {d.meta.endDate}).</>
+                  : <><b style={{color:'#fff'}}>Readiness {todayReadiness}%</b> — {todayReadiness>=67?'great recovery.':todayReadiness>=33?'moderate recovery.':'low recovery. Rest today.'}{l.hrv&&l.hrvBaseline&&<> HRV ({fmt(l.hrv)}ms) vs your {fmt(l.hrvBaseline)}ms baseline.</>}{sleepPlan&&<> Tonight aim for <b style={{color:'#fff'}}>{sleepPlan.tonight}h</b>{sleepPlan.bedtime?<> — in bed by {sleepPlan.bedtime}</>:''}.</>}<br/><b style={{color:'#fff'}}>Data:</b> {durLabel} ({d.meta.startDate} → {d.meta.endDate}).</>
                 }
               </div>
             </Card>
+            {!isDemo&&<HistoryNote meta={d.meta} onClear={onClearHistory}/>}
 
             {(d.alerts||[]).map((a,i)=>(
               <Card key={i} style={{borderLeft:'4px solid #FFD60A'}}>
@@ -1375,8 +1395,8 @@ For every other kind of question — workouts, sleep, readiness, general advice,
               {[
                 [T.teal,'Readiness',`${todayReadiness}%`,'readiness'],
                 [T.blue,'Sleep',sleepNights.length?`${sleepNights[sleepNights.length-1].score}%`:'-','sleep'],
-                [T.yellow,'Effort',`${fmt(todayEffort,1)}/21`,'effort'],
-                ['rgba(255,255,255,0.5)','Vitals','All normal','health'],
+                [T.yellow,'Effort',l.strain!=null?`${fmt(l.strain,1)}/21`:'-','effort'],
+                [(d.alerts||[]).length?T.yellow:'rgba(255,255,255,0.5)','Vitals',(d.alerts||[]).length?`${d.alerts.length} alert${d.alerts.length>1?'s':''}`:'No alerts','health'],
               ].map(([color,label,val,tabId])=>(
                 <div key={label} onClick={()=>handleTabClick(tabId)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer'}}>
                   <div style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:'rgba(255,255,255,0.75)'}}>
@@ -1387,6 +1407,9 @@ For every other kind of question — workouts, sleep, readiness, general advice,
                 </div>
               ))}
             </Card>
+            <StreaksCard streaks={streaks} asOf={d.meta.endDate}/>
+            <CheckInCard hrvDaily={d.daily?.hrv}/>
+            <ShareWeekCard stats={weekStats}/>
             <AffiliateInlineCard tab='today'/>
           </div>
         )}
@@ -1870,6 +1893,7 @@ For every other kind of question — workouts, sleep, readiness, general advice,
                   note="Habit insights need workout data (and a few weeks of it) to find real patterns. Check &quot;Workouts&quot; in Simple Health Export CSV, export again, and re-upload — or keep using the app for a few more weeks if you've already got workouts logged."/>
               )}
             </Card>
+            <CheckinInsightsCard hrvDaily={d.daily?.hrv}/>
             <Card>
               <Label>Your Action Plan</Label>
               {[
@@ -1994,7 +2018,7 @@ For every other kind of question — workouts, sleep, readiness, general advice,
                     <LineChart data={rhrChartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)"/>
                       <XAxis dataKey="month" tick={{fontSize:9,fill:'rgba(255,255,255,0.4)'}}/>
-                      <YAxis domain={['dataMin-3','dataMax+3']} tick={{fontSize:9,fill:'rgba(255,255,255,0.4)'}}/>
+                      <YAxis domain={[dm=>Math.floor(dm-3),dm=>Math.ceil(dm+3)]} allowDecimals={false} tickFormatter={v=>Math.round(v)} tick={{fontSize:9,fill:'rgba(255,255,255,0.4)'}}/>
                       <TT formatter={v=>[`${v} bpm`]}/>
                       <Line type="monotone" dataKey="value" stroke="#FF3B5C" strokeWidth={2} dot={{r:3}} name="RHR"/>
                     </LineChart>
@@ -2234,6 +2258,18 @@ For every other kind of question — workouts, sleep, readiness, general advice,
                 ))}
                 {chatLoading&&<div style={{display:'flex',gap:10}}><div style={{width:26,height:26,borderRadius:99,background:'rgba(0,255,136,0.15)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13}}>✨</div><div style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:14,padding:'10px 14px',fontSize:12,color:'rgba(255,255,255,0.45)'}}>Analysing your data…</div></div>}
               </div>
+              {!nutritionOnly&&(
+                <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:10}}>
+                  {[
+                    ['📅 Plan my week','Plan my next 7 days. For each day give one line: hard / moderate / easy / rest training (suggest which of my usual sports), a sleep target and bedtime. Base it on my readiness, training load, sleep debt, streaks and check-ins, and say in one sentence why.'],
+                    ['🏋️ Train hard today?','Should I train hard today? Answer yes / go easy / rest first, then explain in 2-3 sentences using my readiness, training load and last night\'s sleep.'],
+                    ['😴 Fix my sleep','What is the single biggest thing I can change to sleep better this week? Use my sleep need, sleep debt, bedtimes, habits and check-ins.'],
+                  ].map(([label,prompt])=>(
+                    <button key={label} disabled={chatLoading} onClick={()=>handleAsk(prompt)}
+                      style={{padding:'6px 12px',borderRadius:99,fontSize:11,fontWeight:700,cursor:'pointer',border:'1px solid rgba(0,255,136,0.35)',background:'rgba(0,255,136,0.08)',color:'#00FF88'}}>{label}</button>
+                  ))}
+                </div>
+              )}
               <div style={{display:'flex',gap:10}}>
                 <input value={askInput} onChange={e=>setAskInput(e.target.value)}
                   onKeyDown={e=>e.key==='Enter'&&!chatLoading&&handleAsk()}

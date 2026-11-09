@@ -26,7 +26,8 @@ Commit and push to `main` to deploy — no `netlify deploy` needed.
 
 ## Netlify environment variables (already set on Netlify — nothing to do)
 
-- `VITAIQ_OPENROUTER_KEY` — used by both functions. Don't rename it to `OPENROUTER_API_KEY`: Netlify's AI Gateway silently overrides that name.
+- `ADMIN_PASSWORD` — admin page password (type "vitaiq" on the landing page to open admin).
+- `VITAIQ_OPENROUTER_KEY` — used by both AI functions. Don't rename it to `OPENROUTER_API_KEY`: Netlify's AI Gateway silently overrides that name.
 
 ## Layout
 
@@ -41,6 +42,15 @@ netlify/functions/chat.js         AI Coach  → OpenRouter qwen/qwen3-14b
 netlify/functions/analyze-food.js food photo → OpenRouter google/gemini-2.5-flash-lite
 supabase/*.sql               table definitions (already applied — keep for reference)
 ```
+
+## Added 9 Nov 2026
+
+- Upload history: each upload merges into a history kept in the browser (`src/lib/history.js`), so trends keep growing; "Clear" on the Today tab wipes it.
+- Streaks (7h+ sleep, 8k steps, 3+ workouts/week, meals logged), 10-second daily check-in with next-day-HRV insights (`src/lib/insights.js`, `src/components/Extras.jsx`).
+- "Share my week" story image (`src/lib/shareCard.js`), Add-to-Home-Screen app (`public/manifest.webmanifest`, icons).
+- AI Coach quick buttons (Plan my week, Train hard today?, Fix my sleep); coach sees streaks and check-ins.
+- Admin password checked server-side by `netlify/functions/admin-auth.js` against the `ADMIN_PASSWORD` env var.
+- Fixed: steps double-counted iPhone + Watch; cramped header on phones; Effort/Vitals drill-down showed placeholder values.
 
 ## Changes compared with the 16 Sep live site
 

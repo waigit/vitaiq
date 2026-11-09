@@ -364,34 +364,23 @@ export async function parseHealthZip(file) {
   }
   const efficiencies = Object.values(out.sleep).map(N => N.efficiency).filter(N => N != null);
   efficiencies.length && (out.latest.sleepEfficiency = Math.round(mean(efficiencies))), out.sleepTimes = sleepTimes;
-  const stepRows = readRows("StepCount"),
-    stepsByDay = {};
-  stepRows.forEach(N => {
-    const B = dayKey(N.startDate),
-      q = num(N.value);
-    B && q && (stepsByDay[B] = (stepsByDay[B] || 0) + q);
-  }), out.daily.steps = Object.fromEntries(Object.entries(stepsByDay).map(([N, B]) => [N, Math.round(B)]));
-  const activeRows = readRows("ActiveEnergyBurned"),
-    activeByDay = {};
-  activeRows.forEach(N => {
-    const B = dayKey(N.startDate),
-      q = num(N.value);
-    B && q && (activeByDay[B] = (activeByDay[B] || 0) + q);
-  });
-  const exerciseRows = readRows("AppleExerciseTime"),
-    exerciseByDay = {};
-  exerciseRows.forEach(N => {
-    const B = dayKey(N.startDate),
-      q = num(N.value);
-    B && q && (exerciseByDay[B] = (exerciseByDay[B] || 0) + q);
-  });
-  const basalRows = readRows("BasalEnergyBurned"),
-    basalByDay = {};
-  basalRows.forEach(N => {
-    const B = dayKey(N.startDate),
-      q = num(N.value);
-    B && q && (basalByDay[B] = (basalByDay[B] || 0) + q);
-  });
+  // Daily totals: iPhone and Apple Watch both record steps (and sometimes energy) for the same
+  // walk. Apple Health counts the overlap once, so per day we keep the device that recorded more
+  // instead of adding them together (adding them roughly doubled step counts).
+  const dailyTotal = rows => {
+    const bySource = {};
+    rows.forEach(N => {
+      const B = dayKey(N.startDate), q = num(N.value), src = N.sourceName || "";
+      if (!B || !q) return;
+      (bySource[B] || (bySource[B] = {}))[src] = (bySource[B][src] || 0) + q;
+    });
+    return Object.fromEntries(Object.entries(bySource).map(([day, m]) => [day, Math.max(...Object.values(m))]));
+  };
+  const stepsByDay = dailyTotal(readRows("StepCount"));
+  out.daily.steps = Object.fromEntries(Object.entries(stepsByDay).map(([N, B]) => [N, Math.round(B)]));
+  const activeByDay = dailyTotal(readRows("ActiveEnergyBurned"));
+  const exerciseByDay = dailyTotal(readRows("AppleExerciseTime"));
+  const basalByDay = dailyTotal(readRows("BasalEnergyBurned"));
   const hrvNow = out.latest.hrv || 35,
     hrvBase = out.latest.hrvBaseline || 35,
     rhrNow = out.latest.rhr || 65,
@@ -458,6 +447,21 @@ export async function parseHealthZip(file) {
     };
   }).filter(Boolean);
   out.workouts = workouts;
+  const insights = computeHabitInsights(out);
+  if (out.habitInsights = insights, out.meta.startDate && out.meta.endDate) {
+    const N = Math.round((new Date(out.meta.endDate) - new Date(out.meta.startDate)) / 86400000),
+      B = Math.round(N / 30);
+    out.meta.durationLabel = B >= 2 ? `${B} months` : N <= 1 ? "1 day" : `${N} days`, out.meta.durationMonths = B, out.meta.durationDays = N;
+  }
+  return out;
+}
+
+// Habit insights ("Tennis — 83× this period, -5% next-day HRV", bedtime before/after midnight,
+// short-sleep nights). Exported so the merged upload history can be re-analysed as a whole.
+// Also sets out.workoutTypeCounts.
+export function computeHabitInsights(out) {
+  const workouts = out.workouts || [];
+  const mean = N => N.length ? parseFloat((N.reduce((B, q) => B + q, 0) / N.length).toFixed(2)) : null;
   const hrvDaily = out.daily.hrv || {},
     hrvMean = mean(Object.values(hrvDaily)),
     nextDay = N => {
@@ -489,7 +493,7 @@ export async function parseHealthZip(file) {
       });
     });
   }
-  if (hrvMean && ((za = out.sleepTimes) == null ? undefined : za.length) >= 5) {
+  if (hrvMean && (out.sleepTimes?.length ?? 0) >= 5) {
     const N = out.sleepTimes.filter(oe => oe.bedHour >= 24),
       B = out.sleepTimes.filter(oe => oe.bedHour < 24),
       q = oe => {
@@ -522,10 +526,5 @@ export async function parseHealthZip(file) {
       }
     }
   }
-  if (out.habitInsights = insights, out.meta.startDate && out.meta.endDate) {
-    const N = Math.round((new Date(out.meta.endDate) - new Date(out.meta.startDate)) / 86400000),
-      B = Math.round(N / 30);
-    out.meta.durationLabel = B >= 2 ? `${B} months` : N <= 1 ? "1 day" : `${N} days`, out.meta.durationMonths = B, out.meta.durationDays = N;
-  }
-  return out;
+  return insights;
 }

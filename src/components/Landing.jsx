@@ -999,7 +999,7 @@ function Landing({
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             gap: "7px 10px"
-          }}>{[["⚡", "Daily Readiness", "Green/yellow/red zone + morning brief"], ["😴", "Sleep Analysis", "Stages, personal sleep need + sleep debt"], ["🔥", "Effort & Training Load", "VO2 Max trend + overtraining warning"], ["🫀", "Vitals Monitor", "HRV, RHR, SpO2, Resp Rate, Skin Temp"], ["📊", "Habit Insights", "Which habits boost or hurt your scores"], ["✨", "AI Health Coach", "Ask anything · 5 free messages"], ["🧬", "Longevity Score", "Biological age delta from your metrics"], ["💉", "Blood Pressure", "Your cuff readings + heart trend"], ["🫁", "Guided Breathwork", "4-4-8 box breathing to lower stress"], ["⚠️", "Health Alerts", "SpO2 dips and anomaly detection"]].map(([k, L, D]) => <div key={L} style={{
+          }}>{[["⚡", "Daily Readiness", "Green/yellow/red zone + morning brief"], ["😴", "Sleep Analysis", "Stages, personal sleep need + sleep debt"], ["🔥", "Effort & Training Load", "VO2 Max trend + overtraining warning"], ["🫀", "Vitals Monitor", "HRV, RHR, SpO2, Resp Rate, Skin Temp"], ["📊", "Habits & Streaks", "Daily check-in + what boosts or hurts your HRV"], ["✨", "AI Health Coach", "Ask anything · 5 free messages"], ["🧬", "Longevity Score", "Biological age delta from your metrics"], ["💉", "Blood Pressure", "Your cuff readings + heart trend"], ["🫁", "Guided Breathwork", "4-4-8 box breathing to lower stress"], ["📤", "Share My Week", "Story card for Instagram & TikTok + SpO2 alerts"]].map(([k, L, D]) => <div key={L} style={{
               display: "flex",
               alignItems: "flex-start",
               gap: 6

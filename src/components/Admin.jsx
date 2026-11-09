@@ -84,8 +84,22 @@ function colorForCommission(e) {
 function Admin({
   onBack: e
 }) {
-  const [t, r] = useState(false),
+  const [t, r] = useState(() => { try { return sessionStorage.getItem("vitaiq_admin_ok") === "1" } catch { return false } }),
     [n, i] = useState(""),
+    [authErr, setAuthErr] = useState(""),
+    [authBusy, setAuthBusy] = useState(false),
+    // Password is checked by the admin-auth Netlify function against the ADMIN_PASSWORD
+    // environment variable, so it never appears in this public code.
+    tryLogin = async () => {
+      if (!n || authBusy) return;
+      setAuthBusy(true); setAuthErr("");
+      try {
+        const res = await fetch("/api/admin-auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: n }) });
+        if (res.ok) { try { sessionStorage.setItem("vitaiq_admin_ok", "1") } catch {} r(true) }
+        else setAuthErr(res.status === 401 ? "Wrong password" : res.status === 500 ? "Admin password not set up yet — add ADMIN_PASSWORD in Netlify environment variables" : "Login unavailable — try again");
+      } catch { setAuthErr("Login unavailable — check your connection") }
+      setAuthBusy(false);
+    },
     [o, a] = useState("overview"),
     [l, s] = useState([]),
     [u, f] = useState([]),
@@ -288,7 +302,7 @@ function Admin({
         fontSize: 11,
         color: A.muted,
         marginBottom: 20
-      }}>Private dashboard</div><input type="password" value={n} onChange={P => i(P.target.value)} onKeyDown={P => P.key === "Enter" && n === "vitaiq-admin-2026" && r(true)} placeholder="Enter password" style={{
+      }}>Private dashboard</div><input type="password" value={n} onChange={P => i(P.target.value)} onKeyDown={P => P.key === "Enter" && tryLogin()} placeholder="Enter password" style={{
         width: "100%",
         background: A.surface2,
         border: `1px solid ${A.border2}`,
@@ -298,7 +312,7 @@ function Admin({
         fontSize: 13,
         marginBottom: 10,
         outline: "none"
-      }} /><button onClick={() => n === "vitaiq-admin-2026" && r(true)} style={{
+      }} /><button onClick={tryLogin} style={{
         width: "100%",
         background: A.accent,
         color: "#000",
@@ -308,7 +322,7 @@ function Admin({
         fontWeight: 700,
         fontSize: 13,
         cursor: "pointer"
-      }}>Enter</button></div></div>;
+      }}>{authBusy ? "Checking…" : "Enter"}</button>{authErr && <div style={{ fontSize: 11, color: A.red, marginTop: 10 }}>{authErr}</div>}</div></div>;
   const D = P => ({
     padding: "7px 14px",
     borderRadius: 8,
