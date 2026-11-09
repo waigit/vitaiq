@@ -8,7 +8,7 @@
 // debugging session — the function was receiving a rotating Netlify Gateway
 // session token instead of the real OpenRouter key, even though the
 // dashboard and `netlify env:get` both correctly showed the real key.
-exports.handler = async (event) => {
+export const handler = async (event) => {
   const CORS = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',

@@ -29,7 +29,7 @@ function extractJson(text) {
 }
 const n = v => { const x = Math.round(Number(v)); return Number.isFinite(x) && x >= 0 ? x : 0 }
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 200, headers: CORS, body: '' }
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method Not Allowed' })
 
