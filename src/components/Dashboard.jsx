@@ -1053,11 +1053,27 @@ For every other kind of question — workouts, sleep, readiness, general advice,
     setTab(t)
   }
 
-  const rhrChartData = m.rhr||[]
-  const hrvChartData = m.hrv||[]
+  // Monthly averages need 2+ months to draw a line. With less history (e.g. a 7- or 30-day iPhone sync)
+  // the trend charts use one point per day instead.
+  const dayLabel = k => { const [y,mo,da] = k.split('-').map(Number); return `${da} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mo-1]}` }
+  const dailySeries = map => Object.keys(map||{}).sort().map(k=>({month:dayLabel(k),rawDay:k,value:map[k]}))
+  const useDaily = (monthly, map) => (monthly||[]).length<2 && Object.keys(map||{}).length>=2
+  const dHrv = d.daily?.hrv || {}, dRhr = d.daily?.rhr || {}
+  const dailyScores = (() => {
+    const hb = l.hrvBaseline || 35, rb = l.rhrAvg || l.rhr || 65
+    return Object.keys(dHrv).sort().filter(k => dRhr[k] != null).map(k => {
+      const hv = dHrv[k], rv = dRhr[k]
+      return { month: dayLabel(k), rawDay: k,
+        readiness: Math.min(99, Math.max(10, Math.round(Math.min(100, hv / hb * 60) * 0.6 + Math.max(0, 100 - (rv - 40) * 2) * 0.4))),
+        stress: Math.round(Math.min(100, Math.max(0, (1 - hv / hb) * 150)) * 0.65 + Math.min(100, Math.max(0, (rv - rb) * 5)) * 0.35) }
+    })
+  })()
+  const rhrChartData = useDaily(m.rhr, dRhr) ? dailySeries(dRhr) : (m.rhr||[])
+  const hrvChartData = useDaily(m.hrv, dHrv) ? dailySeries(dHrv) : (m.hrv||[])
   const vo2ChartData = m.vo2||[]
-  const readinessChartData = m.readiness||[]
-  const stressChartData = m.stress||[]
+  const readinessChartData = (m.readiness||[]).length<2 && dailyScores.length>=2 ? dailyScores.map(x=>({month:x.month,value:x.readiness})) : (m.readiness||[])
+  const stressChartData = (m.stress||[]).length<2 && dailyScores.length>=2 ? dailyScores.map(x=>({month:x.month,value:x.stress})) : (m.stress||[])
+  const heartTrendData = m.rhr||[] // Heart Trend stays month-to-month on purpose
   const strainDays = (() => {
     const daily = d.daily?.strain || {}
     return Object.entries(daily)
@@ -2002,8 +2018,8 @@ For every other kind of question — workouts, sleep, readiness, general advice,
             </Card>
             <Card>
               <Label>Heart Trend<InfoTip text="Resting heart rate over the months in your export. A resting heart rate that drifts upward over months can go with rising blood pressure, poor sleep or stress; a falling one usually reflects better fitness. It does not tell you your blood pressure."/></Label>
-              {rhrChartData.length>=2?(()=>{
-                const first=rhrChartData[0], last=rhrChartData[rhrChartData.length-1]
+              {heartTrendData.length>=2?(()=>{
+                const first=heartTrendData[0], last=heartTrendData[heartTrendData.length-1]
                 const diff=+(last.value-first.value).toFixed(1)
                 const c=diff<=-1?T.green:diff>=2?T.red:diff>=1?T.yellow:'rgba(255,255,255,0.8)'
                 const msg=diff<=-1?'Your resting heart rate has come down — a good sign for heart health and fitness.'
@@ -2016,7 +2032,7 @@ For every other kind of question — workouts, sleep, readiness, general advice,
                   </div>
                   <div style={{fontSize:12,color:'rgba(255,255,255,0.65)',marginBottom:10,lineHeight:1.5}}>{msg}</div>
                   <ChartBox height={140}>
-                    <LineChart data={rhrChartData}>
+                    <LineChart data={heartTrendData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)"/>
                       <XAxis dataKey="month" tick={{fontSize:9,fill:'rgba(255,255,255,0.4)'}}/>
                       <YAxis domain={[dm=>Math.floor(dm-3),dm=>Math.ceil(dm+3)]} allowDecimals={false} tickFormatter={v=>Math.round(v)} tick={{fontSize:9,fill:'rgba(255,255,255,0.4)'}}/>

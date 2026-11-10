@@ -1,7 +1,7 @@
 // VitaIQ — upload history kept in this browser only (nothing is sent to a server).
 // Each Apple Health upload is merged into a running history, so trends keep growing
 // even when people export only the last 30 days.
-import { computeHabitInsights } from './parseHealth'
+import { computeHabitInsights, scoreLatest } from './parseHealth'
 
 const KEY = 'vitaiq_history_v1'
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
@@ -88,6 +88,22 @@ function buildView(fresh, h) {
   if (starts.length && ends.length) {
     const s = starts.sort()[0], e = ends.sort().slice(-1)[0], dur = durationLabel(s, e)
     Object.assign(view.meta, { startDate: s, endDate: e, durationLabel: dur.label, durationDays: dur.days, durationMonths: dur.months })
+  }
+  // A short upload (e.g. a 7-day iPhone sync) only knows 7 days of "normal". When the saved history
+  // covers more days, use its last 60 days as the HRV / resting-HR baseline and re-score readiness.
+  const base60 = map => {
+    const keys = Object.keys(map || {}).sort()
+    if (!keys.length) return null
+    const cut = new Date(new Date(keys[keys.length - 1] + 'T00:00:00Z').getTime() - 60 * 864e5).toISOString().slice(0, 10)
+    const vals = keys.filter(k => k >= cut).map(k => map[k]).filter(v => typeof v === 'number')
+    return vals.length ? { mean: +(vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2), n: vals.length } : null
+  }
+  const freshHrvDays = Object.keys(fresh.daily?.hrv || {}).length
+  const hb = base60(h.daily.hrv), rb = base60(h.daily.rhr)
+  if (hb && hb.n > freshHrvDays && fresh.latest) {
+    view.latest = { ...fresh.latest, hrvBaseline: hb.mean }
+    if (rb && rb.n > Object.keys(fresh.daily?.rhr || {}).length) view.latest.rhrAvg = rb.mean
+    scoreLatest(view.latest)
   }
   view.meta.uploadsCount = h.uploads.length
   view.meta.latestExport = { start: fresh.meta.startDate, end: fresh.meta.endDate }

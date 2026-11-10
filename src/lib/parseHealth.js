@@ -261,6 +261,9 @@ export function analyzeRows(readRows, readRowsAll, meta) {
     const N = values(rhrRows),
       B = sleepWindowAvg(rhrRows);
     out.latest.rhr = parseFloat((B ?? recentAvg(rhrRows) ?? N[N.length - 1]).toFixed(1)), out.latest.rhrSource = B != null ? "sleep" : "recent", out.latest.rhrAvg = mean(values(lastNDays(rhrRows))) || mean(N), out.monthly.rhr = monthlyAverages(rhrRows), out.meta.startDate = rhrRows[0].startDate.slice(0, 10), out.meta.endDate = rhrRows[rhrRows.length - 1].startDate.slice(0, 10);
+    const byDay = {};
+    rhrRows.forEach(r => { const k = dayKey(r.startDate), v = num(r.value); k && v && (byDay[k] || (byDay[k] = [])).push(v) });
+    out.daily.rhr = Object.fromEntries(Object.entries(byDay).map(([k, v]) => [k, parseFloat(mean(v).toFixed(1))]));
   }
   const hrvRows = sortByDate(readRows("HeartRateVariabilitySDNN"));
   if (hrvRows.length) {
@@ -464,6 +467,21 @@ export function analyzeRows(readRows, readRowsAll, meta) {
     out.meta.durationLabel = B >= 2 ? `${B} months` : N <= 1 ? "1 day" : `${N} days`, out.meta.durationMonths = B, out.meta.durationDays = N;
   }
   return out;
+}
+
+// Readiness + stress from today's values vs baseline — same formulas as analyzeRows above.
+// Used by the upload history to re-score with a longer baseline than a short sync provides.
+export function scoreLatest(latest) {
+  const hrvNow = latest.hrv || 35, hrvBase = latest.hrvBaseline || 35, rhrNow = latest.rhr || 65, spo2Now = latest.spo2 || 96;
+  const hrvScore = Math.min(100, hrvNow / hrvBase * 60), rhrScore = Math.max(0, 100 - (rhrNow - 40) * 2), spo2Score = Math.min(100, (spo2Now - 88) * 8);
+  latest.readiness = Math.min(99, Math.max(10, Math.round(hrvScore * 0.5 + rhrScore * 0.3 + spo2Score * 0.2)));
+  const rhrBase = latest.rhrAvg || rhrNow,
+    hrvStress = Math.min(100, Math.max(0, (1 - hrvNow / hrvBase) * 150)),
+    rhrStress = Math.min(100, Math.max(0, (rhrNow - rhrBase) * 5));
+  latest.stressIndex = Math.round(hrvStress * 0.65 + rhrStress * 0.35);
+  latest.stressLabel = latest.stressIndex >= 67 ? "High" : latest.stressIndex >= 34 ? "Moderate" : "Low";
+  latest.stress = latest.stressIndex;
+  return latest;
 }
 
 // Habit insights ("Tennis — 83× this period, -5% next-day HRV", bedtime before/after midnight,
