@@ -24,7 +24,7 @@ export const isAppleMobile = () =>
 // must win over "resting heart rate").
 const SECTIONS = [
   [/variab|hrv/, 'HeartRateVariabilitySDNN'],
-  [/resting energy|basal/, 'BasalEnergyBurned'],
+  [/resting energy|resting cal|basal/, 'BasalEnergyBurned'],
   [/resting heart|resting hr|rhr/, 'RestingHeartRate'],
   [/oxygen|spo2/, 'OxygenSaturation'],
   [/respirat/, 'RespiratoryRate'],

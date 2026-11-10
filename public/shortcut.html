@@ -59,7 +59,7 @@
     <ol>
       <li><span class="a">Find Health Samples</span> where <b>Type</b> is <i>Heart Rate Variability</i><br>
         → <b>Add Filter</b>: <b>Start Date</b> · <b>is in the last</b> · <b>Days</b> (the variable) · <b>days</b><br>
-        → <b>Group By: Day</b> · Sort by <b>Start Date</b> · Order <b>Oldest First</b> · Limit <b>off</b></li>
+        → <b>Group By: Day</b> · <b>Fill Missing off</b> · Sort by <b>Start Date</b> · Order <b>Oldest First</b> · Limit <b>off</b></li>
       <li><span class="a">Repeat with Each</span> item in <b>Health Samples</b></li>
       <li>Inside the repeat: <span class="a">Text</span> containing<br>
         <b>Repeat Item</b> → tap it → <b>Start Date</b> → Date Format <b>ISO 8601</b> (turn on <i>Include ISO 8601 Time</i>)<br>
@@ -75,11 +75,11 @@
     <tr><th>Type in Shortcuts</th><th>Group by day</th><th></th></tr>
     <tr><td>Heart Rate Variability</td><td>Yes</td><td>needed</td></tr>
     <tr><td>Resting Heart Rate</td><td>Yes</td><td>needed</td></tr>
-    <tr><td>Blood Oxygen Saturation (may be called Oxygen Saturation)</td><td>Yes</td><td>needed</td></tr>
+    <tr><td>Oxygen Saturation (Blood Oxygen)</td><td>Yes</td><td>needed</td></tr>
     <tr><td>Steps</td><td>Yes</td><td>needed</td></tr>
-    <tr><td>Active Energy</td><td>Yes</td><td>needed</td></tr>
-    <tr><td>Resting Energy</td><td>Yes</td><td>for calorie goal</td></tr>
-    <tr><td>Exercise Minutes (Exercise Time)</td><td>Yes</td><td>for strain</td></tr>
+    <tr><td>Active Calories (Active Energy)</td><td>Yes</td><td>needed</td></tr>
+    <tr><td>Resting Calories (Resting Energy)</td><td>Yes</td><td>for calorie goal</td></tr>
+    <tr><td>Exercise Time (Exercise Minutes)</td><td>Yes</td><td>for strain</td></tr>
     <tr><td>Cardio Fitness (VO₂ Max)</td><td>Yes</td><td>optional</td></tr>
     <tr><td>Respiratory Rate</td><td>Yes</td><td>optional</td></tr>
   </table>
