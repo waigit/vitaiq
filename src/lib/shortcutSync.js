@@ -14,7 +14,7 @@ import { analyzeRows, readZipText } from './parseHealth.js'
 
 export const SHORTCUT_NAME = 'VitaIQ Sync'
 export const shortcutRunUrl = days =>
-  `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT_NAME)}&input=text&text=${days}`
+  `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT_NAME)}${days ? `&input=text&text=${days}` : ''}`
 
 export const isAppleMobile = () =>
   typeof navigator !== 'undefined' &&

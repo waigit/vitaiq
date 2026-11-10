@@ -193,28 +193,23 @@ export function InstallHint() {
 }
 
 // ── Sync from iPhone (Apple Shortcut) ───────────────────────────────────────
-const SYNC_PERIODS = [7, 30, 90, 180]
+// The period is chosen in the shortcut's own "How many days?" prompt, so the card just opens it.
 export function SyncFromIPhone({ compact = false }) {
-  const [days, setDays] = useState(() => { try { return +localStorage.getItem('vitaiq_sync_days') || 30 } catch { return 30 } })
   const ios = isAppleMobile()
-  const pick = d => { setDays(d); try { localStorage.setItem('vitaiq_sync_days', String(d)) } catch {} }
-  const chip = d => (
-    <button key={d} onClick={() => pick(d)} style={{ background: d === days ? 'rgba(0,255,136,0.15)' : 'rgba(255,255,255,0.04)', color: d === days ? G : 'rgba(255,255,255,0.65)', border: `1px solid ${d === days ? 'rgba(0,255,136,0.45)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 99, padding: '6px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-      {d < 90 ? `${d} days` : `${d / 30} months`}
-    </button>
-  )
   return (
     <Card style={compact ? { padding: 16 } : {}}>
       <Label>📲 Sync from iPhone</Label>
       <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginBottom: 12 }}>
         Pull your latest Apple Health data straight in — no export app, no ZIP. Each sync adds to your history.
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>{SYNC_PERIODS.map(chip)}</div>
       {ios
-        ? <a href={shortcutRunUrl(days)} style={{ display: 'block', textAlign: 'center', background: G, color: '#000', borderRadius: 12, padding: '12px 16px', fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>Sync last {days < 90 ? `${days} days` : `${days / 30} months`}</a>
+        ? <a href={shortcutRunUrl()} style={{ display: 'block', textAlign: 'center', background: G, color: '#000', borderRadius: 12, padding: '12px 16px', fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>Sync from iPhone</a>
         : <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '10px 0' }}>Open VitaIQ in Safari on your iPhone to sync.</div>}
-      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 10, lineHeight: 1.6 }}>
-        Needs the free “{SHORTCUT_NAME}” shortcut (one-time setup) — <a href="/shortcut.html" style={{ color: G }}>set it up</a>. 7 days is quickest; 6 months can take ~20 s.
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 10, lineHeight: 1.6 }}>
+        When the shortcut asks <b style={{ color: 'rgba(255,255,255,0.75)' }}>How many days?</b> type: <b style={{ color: 'rgba(255,255,255,0.75)' }}>7</b> quick top-up · <b style={{ color: 'rgba(255,255,255,0.75)' }}>30</b> recommended · <b style={{ color: 'rgba(255,255,255,0.75)' }}>90–180</b> longer history (can take a minute).
+      </div>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 6, lineHeight: 1.6 }}>
+        Needs the free “{SHORTCUT_NAME}” shortcut — <a href="/shortcut.html" style={{ color: G }}>setup guide</a>.
       </div>
     </Card>
   )
