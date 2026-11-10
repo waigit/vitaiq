@@ -99,6 +99,15 @@
     <p class="note">The other metrics can also skip their loop the same way (<code>#Steps dates</code> + <code>#Steps values</code>), but they're grouped by day so their loops are short anyway.</p>
   </div>
 
+  <div class="card">
+    <p><b>Workouts</b> (for “Workout days” and workout streaks). These need a short loop, but most weeks have only a few workouts:</p>
+    <ol>
+      <li><span class="a">Find Health Samples</span> where Type is <i>Workouts</i>, Start Date is in the last <b>Days</b> days, sorted by Start Date, Oldest First, <b>no grouping</b>, Limit off.</li>
+      <li><span class="a">Repeat with Each</span> → <span class="a">Text</span>: <code>Start Date (ISO 8601)|End Date (ISO 8601)|Workout Activity Type|Active Energy</code> → <span class="a">End Repeat</span></li>
+    </ol>
+    <p class="note">Active Energy is optional, so leave it out if your iOS doesn't offer it. If <i>Workouts</i> isn't in the Type list on your iOS version, skip this block: VitaIQ then shows “–” for workout days instead of 0.</p>
+  </div>
+
   <h2>3 · Put it together and open VitaIQ</h2>
   <ol>
     <li>Add a <span class="a">Text</span> action after the last block. Type the lines below; where it says <b>[Repeat Results]</b>, tap <b>Select Variable</b> and tap the <b>End Repeat</b> of that metric's block:
@@ -122,7 +131,9 @@
 #Sleep ends
 [Sleep Health Samples → End Date]
 #Sleep values
-[Sleep Health Samples → Value]</pre>
+[Sleep Health Samples → Value]
+#Workouts
+[Repeat Results]</pre>
       <span class="note">(add <code>#Cardio Fitness</code> / <code>#Respiratory Rate</code> sections too if you made those blocks)</span></li>
     <li><span class="a">Make Archive</span> from the <b>Text</b> · Format <b>gzip</b> · Name <code>vitaiq</code></li>
     <li><span class="a">Base64 Encode</span> the <b>Archive</b> · Line Breaks <b>None</b></li>
@@ -135,7 +146,7 @@
   <ul>
     <li>Run it from the Shortcuts app and enter <code>7</code>. iOS asks to allow Health access for each type — tap <b>Allow</b>.</li>
     <li>When asked whether the shortcut may open <i>vitalstats.netlify.app</i>, choose <b>Always Allow</b>.</li>
-    <li>Safari opens VitaIQ and shows <b>“Synced … from iPhone”</b> with what arrived (e.g. <i>HRV 7 days · Sleep 7 nights · Steps 7 days</i>). If something's missing or you see an error, send a screenshot to Wai Git's Engineer.</li>
+    <li>Safari opens VitaIQ and shows <b>“Synced … from iPhone”</b> with what arrived (e.g. <i>HRV 7 days · Sleep 7 nights · Steps 7 days · Workouts 4</i>). If something's missing or you see an error, send a screenshot to Wai Git's Engineer.</li>
   </ul>
 
   <h2>Using it</h2>
@@ -143,7 +154,7 @@
     <li><b>From VitaIQ:</b> on the Today tab tap <b>Sync from iPhone</b>, then type the number of days when the shortcut asks (7 quick · 30 recommended · 90–180 longer history).</li>
     <li><b>From anywhere:</b> run <b>VitaIQ Sync</b> (Home Screen icon, widget, Siri, or Apple Watch) and type the number of days.</li>
     <li>Every sync is added to the history saved in Safari, so after one longer sync, a quick 7- or 30-day sync keeps trends up to date. 30 days keeps your baselines most accurate.</li>
-    <li>The CSV ZIP upload still works as before (and is the only way to bring in workout types for now).</li>
+    <li>The CSV ZIP upload still works as before.</li>
   </ul>
 
   <div class="card">

@@ -18,7 +18,7 @@ export function weekVerdict(s) {
   if (s.sleepDebt != null && s.sleepDebt >= 5) return 'Training hard, sleeping short. Bed earlier this week.'
   if (s.loadZone === 'Load spike') return 'Big jump in training. Ease in to stay injury-free.'
   if ((s.avgSleep ?? 0) >= 7) return 'Solid sleep week. Keep the rhythm.'
-  if (s.workoutDays >= 4) return 'Active week — now match it with sleep.'
+  if ((s.workoutDays ?? 0) >= 4) return 'Active week — now match it with sleep.'
   return 'Small steps, every day.'
 }
 
@@ -68,7 +68,7 @@ export async function drawWeekCard(s) {
   const tiles = [
     ['😴', 'Avg sleep', s.avgSleep != null ? `${s.avgSleep}h` : '–', BLUE],
     ['💤', 'Sleep debt', s.sleepDebt != null ? `${s.sleepDebt}h` : '–', s.sleepDebt >= 5 ? RED : s.sleepDebt >= 2 ? YELLOW : GREEN],
-    ['🏋️', 'Workout days', `${s.workoutDays}/7`, YELLOW],
+    ['🏋️', 'Workout days', s.workoutDays != null ? `${s.workoutDays}/7` : '–', YELLOW],
     ['👟', 'Avg steps', s.avgSteps != null ? s.avgSteps.toLocaleString('en-US') : '–', GREEN],
     ['📈', 'Training load', s.loadZone || '–', s.loadColor || PURPLE],
     ['💚', 'Avg HRV', s.avgHrv != null ? `${s.avgHrv} ms` : '–', GREEN],

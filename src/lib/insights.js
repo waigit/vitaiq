@@ -117,7 +117,8 @@ export function computeWeekStats(d, extra = {}) {
   const sleep = pick(Object.fromEntries(Object.entries(d.sleep || {}).map(([k, v]) => [k, v.total]))).filter(v => v >= 3)
   const steps = pick(d.daily?.steps)
   const hrv = pick(d.daily?.hrv)
-  const workoutDays = new Set((d.workouts || []).filter(w => days.includes(w.date)).map(w => w.date)).size
+  // null (shown as '–') when no workouts have ever arrived, e.g. a Shortcut sync without a Workouts block
+  const workoutDays = (d.workouts || []).length ? new Set(d.workouts.filter(w => days.includes(w.date)).map(w => w.date)).size : null
   return {
     from: days[0], to: end,
     readiness: d.latest?.readiness ?? null,

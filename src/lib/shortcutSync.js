@@ -23,6 +23,7 @@ export const isAppleMobile = () =>
 // Section header → Apple Health type name used by analyzeRows. Order matters ("resting energy"
 // must win over "resting heart rate").
 const SECTIONS = [
+  [/workout/, 'WorkoutActivityType'],
   [/variab|hrv/, 'HeartRateVariabilitySDNN'],
   [/resting energy|resting cal|basal/, 'BasalEnergyBurned'],
   [/resting heart|resting hr|rhr/, 'RestingHeartRate'],
@@ -88,11 +89,24 @@ export function decodeSyncPayload(raw) {
 //  • column mode: "#Sleep starts" / "#Sleep ends" / "#Sleep values" (or "… dates" / "… values"),
 //    each followed by one item per line — the Shortcut inserts a whole list at once, no loop,
 //    which is much faster. Columns are paired up by position.
+//  Workouts use line mode: "#Workouts" then "start|end|activity type|kcal" (kcal optional).
 const COLUMN = /\s+(start dates?|starts?|end dates?|ends?|dates?|values?)\s*$/i
 const colName = w => { w = w.toLowerCase(); return w.startsWith('end') ? 'end' : w.startsWith('value') ? 'value' : 'start' }
 
+// Workout: start | end | activity type | kcal (optional). Duration (seconds, as in the CSV) comes from start/end.
+function makeWorkout(start, end, activity, kcal) {
+  const t0 = Date.parse(start), t1 = end ? Date.parse(end) : NaN
+  activity = (activity || '').trim() || 'Workout'
+  if (isNaN(t0) || toNumber(activity) != null) return null // needs a real start date and a type name
+  const secs = !isNaN(t1) && t1 > t0 ? Math.round((t1 - t0) / 1000) : null
+  const e = kcal != null ? toNumber(kcal) : null
+  return { startDate: start, endDate: end || start, activityType: activity,
+    duration: secs != null ? String(secs) : '', totalEnergyBurned: e != null ? String(e) : '' }
+}
+
 function makeRow(type, start, end, value) {
   if (!start) return null
+  if (type === 'WorkoutActivityType') return makeWorkout(start, end, value)
   if (type === 'SleepAnalysis') {
     const stage = sleepStage(value || '')
     return stage && end ? { startDate: start, endDate: end, value: stage } : null
@@ -123,7 +137,8 @@ export function parseSyncText(text) {
     if (col) { cols[type][col].push(line); continue }
     const parts = line.split('|').map(p => p.trim())
     if (parts.length < 2) continue
-    if (type === 'SleepAnalysis') push(type, parts.length >= 3 ? makeRow(type, parts[0], parts[1], parts[2]) : null)
+    if (type === 'WorkoutActivityType') push(type, parts.length >= 3 ? makeWorkout(parts[0], parts[1], parts[2], parts[3]) : null)
+    else if (type === 'SleepAnalysis') push(type, parts.length >= 3 ? makeRow(type, parts[0], parts[1], parts[2]) : null)
     else push(type, makeRow(type, parts[0], parts.length > 2 ? parts[1] : parts[0], parts[parts.length - 1]))
   }
   for (const [t, c] of Object.entries(cols)) {
@@ -139,7 +154,7 @@ export function parseSyncText(text) {
 export function buildFromSync(raw) {
   const { rows, counts, days } = parseSyncText(decodeSyncPayload(raw))
   if (!Object.keys(rows).length) throw new Error('The Shortcut sent no health data. Check that it has Health access and the period has data.')
-  const data = analyzeRows(t => rows[t] || [], () => [], {
+  const data = analyzeRows(t => rows[t] || [], t => rows[t] || [], {
     fileName: `iPhone sync${days ? ` (${days} days)` : ''}`,
     uploadedAt: new Date().toISOString(),
     source: 'shortcut',
@@ -166,5 +181,6 @@ export function summarizeSync(data, counts) {
   if (counts.StepCount) parts.push(`Steps ${n(data.daily.steps)} days`)
   if (counts.OxygenSaturation) parts.push('SpO2')
   if (counts.ActiveEnergyBurned) parts.push('Active energy')
+  if (counts.WorkoutActivityType) parts.push(`Workouts ${counts.WorkoutActivityType}`)
   return parts.join(' · ')
 }
