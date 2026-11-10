@@ -1,11 +1,40 @@
 
 // VitaIQ — Supabase client (anon/publishable key; RLS policies are open by design — no login system)
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
+// Loaded lazily: a static import of esm.sh meant that if esm.sh was blocked or slow (ad/tracker blockers,
+// office networks, some desktop browsers) the whole app failed to start and showed a black page.
+// Now the app always renders; if Supabase can't load, cloud features just return an error instead.
 const SUPABASE_URL = "https://egratofeiwsgickbjyss.supabase.co",
   SUPABASE_KEY = "sb_publishable_9wFc1lA7zJHD-wfoSW5nuA_0_l_m6tl",
-  _client = createClient(SUPABASE_URL, SUPABASE_KEY);
-export const supabase = _client;
+  SUPABASE_JS = "https://esm.sh/@supabase/supabase-js@2";
+
+let _client = null, _failed = false;
+const _ready = import(/* @vite-ignore */ SUPABASE_JS)
+  .then(m => { _client = m.createClient(SUPABASE_URL, SUPABASE_KEY) })
+  .catch(err => { _failed = true; console.warn("VitaIQ: Supabase unavailable, cloud features off:", err) });
+const OFFLINE = { data: null, error: { message: "Cloud features unavailable right now" } };
+
+// Replays a recorded call chain (e.g. .from("x").select("*").eq(...)) on the real client
+function replay(steps) {
+  if (_failed || !_client) return OFFLINE;
+  let obj = _client, self;
+  for (const [kind, v] of steps) {
+    if (kind === "get") { self = obj; obj = obj[v] } else { obj = obj.apply(self, v) }
+  }
+  return obj;
+}
+function chain(steps) {
+  return new Proxy(function () {}, {
+    get(_, k) {
+      if (k === "then") return (res, rej) => _ready.then(() => replay(steps)).then(res, rej);
+      return chain([...steps, ["get", k]]);
+    },
+    apply(_, __, args) {
+      const next = [...steps, ["call", args]];
+      return _client ? replay(next) : chain(next);
+    }
+  });
+}
+export const supabase = chain([]);
 
 export async function getFingerprint() {
   const e = localStorage.getItem("vitaiq_fp");
