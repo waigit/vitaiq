@@ -1,0 +1,148 @@
+// VitaIQ — "Sync from iPhone": reads health data sent by the "VitaIQ Sync" Apple Shortcut.
+// The Shortcut opens https://vitalstats.netlify.app/#sync=<data>. Everything after "#" stays in
+// the browser (it is never sent to Netlify or any server), so data still never leaves the device.
+//
+// <data> is the Shortcut's text, optionally gzip- or zip-compressed, base64-encoded and URL-encoded:
+//   VITAIQ1
+//   #Heart Rate Variability
+//   2026-11-09T00:00:00+08:00|48.2          (start | value)  — one line per day (Group By: Day)
+//   #Sleep
+//   2026-11-09T23:41:00+08:00|2026-11-10T00:12:00+08:00|Core   (start | end | stage)
+// Section names are matched loosely, so the Shortcut can use Apple's own type names.
+import { ungzip } from 'pako'
+import { analyzeRows, readZipText } from './parseHealth.js'
+
+export const SHORTCUT_NAME = 'VitaIQ Sync'
+export const shortcutRunUrl = days =>
+  `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT_NAME)}&input=text&text=${days}`
+
+export const isAppleMobile = () =>
+  typeof navigator !== 'undefined' &&
+  (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1))
+
+// Section header → Apple Health type name used by analyzeRows. Order matters ("resting energy"
+// must win over "resting heart rate").
+const SECTIONS = [
+  [/variab|hrv/, 'HeartRateVariabilitySDNN'],
+  [/resting energy|basal/, 'BasalEnergyBurned'],
+  [/resting heart|resting hr|rhr/, 'RestingHeartRate'],
+  [/oxygen|spo2/, 'OxygenSaturation'],
+  [/respirat/, 'RespiratoryRate'],
+  [/vo2|cardio fitness/, 'VO2Max'],
+  [/wrist/, 'AppleSleepingWristTemperature'],
+  [/weight|body mass/, 'BodyMass'],
+  [/step/, 'StepCount'],
+  [/active energy|active cal|move/, 'ActiveEnergyBurned'],
+  [/exercise/, 'AppleExerciseTime'],
+  [/sleep/, 'SleepAnalysis'],
+]
+const sectionType = name => {
+  const n = name.toLowerCase()
+  for (const [re, type] of SECTIONS) if (re.test(n)) return type
+  return null
+}
+
+// Shortcuts shows stages as "Core", "Deep", "REM", "Awake", "In Bed", "Asleep"/"Unspecified"
+function sleepStage(v) {
+  const s = v.toLowerCase().replace(/[^a-z]/g, '')
+  if (s.includes('core') || s.includes('light')) return 'asleepCore'
+  if (s.includes('deep')) return 'asleepDeep'
+  if (s.includes('rem')) return 'asleepREM'
+  if (s.includes('awake')) return 'awake'
+  if (s.includes('inbed')) return 'inBed'
+  if (s.includes('asleep') || s.includes('unspecified')) return 'asleep'
+  return null
+}
+
+// "48.2", "48,2", "48.2 ms", "97%", "8 432" → number (null if none)
+function toNumber(v) {
+  let s = String(v).trim().replace(/[\s  ]/g, '')
+  if (/^-?\d+,\d+/.test(s) && !s.includes('.')) s = s.replace(',', '.')
+  s = s.replace(/,/g, '')
+  const n = parseFloat(s)
+  return isNaN(n) ? null : n
+}
+
+// Decode whatever the Shortcut put after "#sync=" into its text
+export function decodeSyncPayload(raw) {
+  let s = raw
+  try { s = decodeURIComponent(raw) } catch {}
+  s = s.trim()
+  if (/^VITAIQ/i.test(s) || s.startsWith('#')) return s // plain text, not compressed
+  const b64 = s.replace(/\s/g, '+').replace(/-/g, '+').replace(/_/g, '/')
+  let bytes
+  try {
+    const bin = atob(b64)
+    bytes = Uint8Array.from(bin, c => c.charCodeAt(0))
+  } catch {
+    throw new Error("The data from the Shortcut couldn't be read (not valid base64).")
+  }
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) return new TextDecoder().decode(ungzip(bytes)) // gzip
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b) return readZipText(bytes) // zip
+  return new TextDecoder().decode(bytes)
+}
+
+// Text from the Shortcut → { rows: {AppleType: [row]}, counts: {AppleType: n}, days }
+export function parseSyncText(text) {
+  const rows = {}, counts = {}
+  let type = null, days = null
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim()
+    if (!line) continue
+    const m = line.match(/^VITAIQ\d*\b(.*)$/i)
+    if (m) { const d = m[1].match(/days\s*=\s*(\d+)/i); if (d) days = +d[1]; continue }
+    if (line.startsWith('#')) { type = sectionType(line.slice(1)); continue }
+    if (!type) continue
+    const parts = line.split('|').map(p => p.trim())
+    if (parts.length < 2 || !parts[0]) continue
+    let row
+    if (type === 'SleepAnalysis') {
+      if (parts.length < 3) continue
+      const stage = sleepStage(parts[2])
+      if (!stage) continue
+      row = { startDate: parts[0], endDate: parts[1], value: stage }
+    } else {
+      let v = toNumber(parts[parts.length - 1])
+      if (v == null) continue
+      if (type === 'OxygenSaturation' && v > 1.5) v = v / 100 // the CSV app uses 0.97, Shortcuts may give 97
+      row = { startDate: parts[0], endDate: parts.length > 2 ? parts[1] : parts[0], value: String(v), sourceName: '' }
+    }
+    ;(rows[type] || (rows[type] = [])).push(row)
+  }
+  for (const [t, r] of Object.entries(rows)) counts[t] = r.length
+  return { rows, counts, days }
+}
+
+// Full pipeline: "#sync=..." payload → dashboard data (same shape as parseHealthZip output)
+export function buildFromSync(raw) {
+  const { rows, counts, days } = parseSyncText(decodeSyncPayload(raw))
+  if (!Object.keys(rows).length) throw new Error('The Shortcut sent no health data. Check that it has Health access and the period has data.')
+  const data = analyzeRows(t => rows[t] || [], () => [], {
+    fileName: `iPhone sync${days ? ` (${days} days)` : ''}`,
+    uploadedAt: new Date().toISOString(),
+    source: 'shortcut',
+  })
+  // Date range: the CSV path takes it from Resting HR; fall back to any metric the Shortcut sent
+  if (!data.meta.startDate) {
+    const dates = Object.values(rows).flat().map(r => String(r.startDate).slice(0, 10)).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort()
+    if (dates.length) {
+      data.meta.startDate = dates[0]; data.meta.endDate = dates[dates.length - 1]
+      const n = Math.round((new Date(data.meta.endDate) - new Date(data.meta.startDate)) / 864e5), mo = Math.round(n / 30)
+      Object.assign(data.meta, { durationDays: n, durationMonths: mo, durationLabel: mo >= 2 ? `${mo} months` : n <= 1 ? '1 day' : `${n} days` })
+    }
+  }
+  return { data, counts }
+}
+
+// Short human summary for the toast, e.g. "HRV 30 · Sleep 28 nights · Steps 30"
+export function summarizeSync(data, counts) {
+  const parts = []
+  const n = o => Object.keys(o || {}).length
+  if (counts.HeartRateVariabilitySDNN) parts.push(`HRV ${n(data.daily.hrv)} days`)
+  if (counts.RestingHeartRate) parts.push(`Resting HR`)
+  if (counts.SleepAnalysis) parts.push(`Sleep ${n(data.sleep)} nights`)
+  if (counts.StepCount) parts.push(`Steps ${n(data.daily.steps)} days`)
+  if (counts.OxygenSaturation) parts.push('SpO2')
+  if (counts.ActiveEnergyBurned) parts.push('Active energy')
+  return parts.join(' · ')
+}

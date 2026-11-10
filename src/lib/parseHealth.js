@@ -141,22 +141,17 @@ function monthlyAverages(e, t = 1) {
   }));
 }
 
+// Text of the first file in a zip (used when the Shortcut sends its data as a zip archive)
+export function readZipText(bytes) {
+  const entries = Object.values(readZipDirectory(bytes))
+  if (!entries.length) throw new Error("Empty ZIP");
+  return extractZipEntry(bytes, entries[0]);
+}
+
 export async function parseHealthZip(file) {
-  var Mn, yi, za;
   const buffer = await file.arrayBuffer(),
     bytes = new Uint8Array(buffer),
     zipDir = readZipDirectory(bytes),
-    out = {
-      meta: {
-        fileName: file.name,
-        uploadedAt: new Date().toISOString()
-      },
-      latest: {},
-      monthly: {},
-      daily: {},
-      sleep: {},
-      alerts: []
-    },
     readRows = N => {
       const B = findZipEntry(zipDir, N);
       if (!B) return [];
@@ -175,6 +170,21 @@ export async function parseHealthZip(file) {
         console.warn(`${N}:`, ne);
       }
       return q;
+    };
+  return analyzeRows(readRows, readRowsAll, { fileName: file.name, uploadedAt: new Date().toISOString() });
+}
+
+// Turns rows ({startDate, endDate, value, ...} per Apple Health type, e.g. "HeartRateVariabilitySDNN")
+// into the dashboard data. Used by the CSV zip upload and by the iPhone Shortcut sync.
+export function analyzeRows(readRows, readRowsAll, meta) {
+  var Mn, yi, za;
+  const out = {
+      meta,
+      latest: {},
+      monthly: {},
+      daily: {},
+      sleep: {},
+      alerts: []
     },
     sortByDate = N => [...N].sort((B, q) => B.startDate.localeCompare(q.startDate)),
     num = N => {

@@ -952,7 +952,17 @@ function Landing({
           color: "rgba(255,255,255,0.28)",
           textAlign: "center",
           marginBottom: 14
-        }}>{b.privacy}</div><a onClick={r} style={{
+        }}>{b.privacy}</div><a href="/shortcut.html" style={{
+          display: "block",
+          textAlign: "center",
+          fontSize: 12.5,
+          color: "rgba(255,255,255,0.55)",
+          textDecoration: "none",
+          marginBottom: 10
+        }}>{"New: "}<b style={{
+            color: "#00FF88",
+            fontWeight: 700
+          }}>📲 Sync straight from your iPhone</b>{" — no export app →"}</a><a onClick={r} style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",

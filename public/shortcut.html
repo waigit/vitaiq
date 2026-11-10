@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0A0A0F" />
+<link rel="icon" type="image/svg+xml" href="/icon.svg" />
+<title>Sync from iPhone — VitaIQ</title>
+<style>
+  :root { --g:#00FF88; --bg:#0A0A0F; --card:rgba(255,255,255,0.04); --line:rgba(255,255,255,0.1); --sub:rgba(255,255,255,0.65); --muted:rgba(255,255,255,0.4); }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:#fff; font-family:Inter,-apple-system,system-ui,sans-serif; line-height:1.6; padding:20px 16px 60px; }
+  main { max-width:640px; margin:0 auto; }
+  a { color:var(--g); }
+  .top { display:flex; align-items:center; gap:10px; margin-bottom:20px; }
+  .top a { text-decoration:none; font-size:13px; }
+  h1 { font-size:24px; font-weight:800; line-height:1.25; margin-bottom:8px; }
+  h1 span { color:var(--g); }
+  h2 { font-size:15px; font-weight:800; margin:28px 0 10px; }
+  p, li { font-size:14px; color:var(--sub); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin:10px 0; }
+  .card.g { border-color:rgba(0,255,136,0.3); background:rgba(0,255,136,0.06); }
+  ol { padding-left:20px; } ol li { margin:8px 0; }
+  ul { padding-left:18px; } ul li { margin:4px 0; }
+  b { color:#fff; }
+  .a { display:inline-block; background:rgba(77,158,255,0.15); color:#9cc7ff; border-radius:6px; padding:0 6px; font-weight:600; font-size:13px; }
+  code { background:rgba(255,255,255,0.08); border-radius:6px; padding:1px 6px; font-size:12.5px; color:#fff; word-break:break-all; }
+  pre { background:rgba(255,255,255,0.06); border:1px solid var(--line); border-radius:10px; padding:12px; font-size:12px; color:#fff; overflow-x:auto; line-height:1.5; }
+  table { width:100%; border-collapse:collapse; font-size:13px; color:var(--sub); }
+  td, th { text-align:left; padding:6px 4px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:#fff; font-size:12px; }
+  .tag { font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--g); }
+  .note { font-size:12.5px; color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><a href="/">← Back to VitaIQ</a></div>
+  <div class="tag">One-time setup · about 15 minutes</div>
+  <h1>Sync from iPhone <span>without an export app</span></h1>
+  <p>You build a small Apple Shortcut called <b>VitaIQ Sync</b> once. After that, tap <b>Sync</b> in VitaIQ (or run the shortcut), pick a period, and your dashboard updates in a few seconds.</p>
+
+  <div class="card g">
+    <p><b>🔒 Private:</b> the shortcut reads Apple Health on your iPhone and opens VitaIQ with the data after a <code>#</code> in the link. Browsers never send that part to any server — the data is processed in Safari on your phone, same as a ZIP upload.</p>
+  </div>
+
+  <h2>1 · Create the shortcut</h2>
+  <ol>
+    <li>Open the <b>Shortcuts</b> app → tap <b>+</b>.</li>
+    <li>Tap the name at the top → <b>Rename</b> → type exactly <code>VitaIQ Sync</code>.</li>
+    <li>Tap the name again → <b>Details</b> → turn on <b>Show in Share Sheet</b> → Done. A block <span class="a">Receive Any input from Share Sheet</span> appears at the top.</li>
+    <li>In that block, tap <b>Continue</b> (next to “If there's no input”) → choose <b>Ask For</b> → <b>Number</b>, and set the prompt to <code>How many days?</code>. This is how you pick the period when you run the shortcut yourself; VitaIQ's Sync button fills it in for you.</li>
+    <li>Add <span class="a">Set Variable</span>: name <code>Days</code>, value <b>Shortcut Input</b>.</li>
+  </ol>
+
+  <h2>2 · Add one block per metric</h2>
+  <p>Each block is 4 actions. Build the first one, then long-press each action → <b>Duplicate</b> to make the next block and just change the Type.</p>
+  <div class="card">
+    <ol>
+      <li><span class="a">Find Health Samples</span> where <b>Type</b> is <i>Heart Rate Variability</i><br>
+        → <b>Add Filter</b>: <b>Start Date</b> · <b>is in the last</b> · <b>Days</b> (the variable) · <b>days</b><br>
+        → <b>Group By: Day</b> · Sort by <b>Start Date</b> · Order <b>Oldest First</b> · Limit <b>off</b></li>
+      <li><span class="a">Repeat with Each</span> item in <b>Health Samples</b></li>
+      <li>Inside the repeat: <span class="a">Text</span> containing<br>
+        <b>Repeat Item</b> → tap it → <b>Start Date</b> → Date Format <b>ISO 8601</b> (turn on <i>Include ISO 8601 Time</i>)<br>
+        then type <code>|</code><br>
+        then <b>Repeat Item</b> → <b>Value</b></li>
+      <li><span class="a">End Repeat</span> (added automatically)</li>
+    </ol>
+    <p class="note">The Text inside should read like: <code>Start Date|Value</code></p>
+  </div>
+
+  <p>Make one block for each of these:</p>
+  <table>
+    <tr><th>Type in Shortcuts</th><th>Group by day</th><th></th></tr>
+    <tr><td>Heart Rate Variability</td><td>Yes</td><td>needed</td></tr>
+    <tr><td>Resting Heart Rate</td><td>Yes</td><td>needed</td></tr>
+    <tr><td>Blood Oxygen Saturation (may be called Oxygen Saturation)</td><td>Yes</td><td>needed</td></tr>
+    <tr><td>Steps</td><td>Yes</td><td>needed</td></tr>
+    <tr><td>Active Energy</td><td>Yes</td><td>needed</td></tr>
+    <tr><td>Resting Energy</td><td>Yes</td><td>for calorie goal</td></tr>
+    <tr><td>Exercise Minutes (Exercise Time)</td><td>Yes</td><td>for strain</td></tr>
+    <tr><td>Cardio Fitness (VO₂ Max)</td><td>Yes</td><td>optional</td></tr>
+    <tr><td>Respiratory Rate</td><td>Yes</td><td>optional</td></tr>
+  </table>
+
+  <div class="card">
+    <p><b>Sleep is slightly different</b> (it has a start, an end and a stage):</p>
+    <ol>
+      <li><span class="a">Find Health Samples</span> where Type is <i>Sleep</i>, Start Date is in the last <b>Days</b> days, sorted by Start Date, Oldest First, <b>no grouping</b>.</li>
+      <li><span class="a">Repeat with Each</span> → <span class="a">Text</span>: <code>Start Date (ISO 8601)|End Date (ISO 8601)|Value</code> → <span class="a">End Repeat</span></li>
+    </ol>
+  </div>
+
+  <h2>3 · Put it together and open VitaIQ</h2>
+  <ol>
+    <li>Add a <span class="a">Text</span> action after the last block. Type the lines below; where it says <b>[Repeat Results]</b>, tap <b>Select Variable</b> and tap the <b>End Repeat</b> of that metric's block:
+<pre>VITAIQ1
+#Heart Rate Variability
+[Repeat Results]
+#Resting Heart Rate
+[Repeat Results]
+#Blood Oxygen
+[Repeat Results]
+#Steps
+[Repeat Results]
+#Active Energy
+[Repeat Results]
+#Resting Energy
+[Repeat Results]
+#Exercise Minutes
+[Repeat Results]
+#Sleep
+[Repeat Results]</pre>
+      <span class="note">(add <code>#Cardio Fitness</code> / <code>#Respiratory Rate</code> sections too if you made those blocks)</span></li>
+    <li><span class="a">Make Archive</span> from the <b>Text</b> · Format <b>gzip</b> · Name <code>vitaiq</code></li>
+    <li><span class="a">Base64 Encode</span> the <b>Archive</b> · Line Breaks <b>None</b></li>
+    <li><span class="a">URL Encode</span> the <b>Base64 Encoded</b> result</li>
+    <li><span class="a">Open URLs</span>: type <code>https://vitalstats.netlify.app/#sync=</code> and right after it insert <b>URL Encoded Text</b> (no space).</li>
+  </ol>
+  <p class="note">Compression keeps the link small. If Make Archive gives you trouble, you can skip steps 2–3 and URL-encode the Text directly — VitaIQ reads both.</p>
+
+  <h2>4 · First run</h2>
+  <ul>
+    <li>Run it from the Shortcuts app and enter <code>7</code>. iOS asks to allow Health access for each type — tap <b>Allow</b>.</li>
+    <li>When asked whether the shortcut may open <i>vitalstats.netlify.app</i>, choose <b>Always Allow</b>.</li>
+    <li>Safari opens VitaIQ and shows <b>“Synced … from iPhone”</b> with what arrived (e.g. <i>HRV 7 days · Sleep 7 nights · Steps 7 days</i>). If something's missing or you see an error, send a screenshot to Wai Git's Engineer.</li>
+  </ul>
+
+  <h2>Using it</h2>
+  <ul>
+    <li><b>From VitaIQ:</b> on the Today tab, pick 7 days / 30 days / 3 / 6 months under <b>Sync from iPhone</b> and tap Sync.</li>
+    <li><b>From anywhere:</b> run <b>VitaIQ Sync</b> (Home Screen icon, widget, Siri, or Apple Watch) and type the number of days.</li>
+    <li>Every sync is added to the history saved in Safari, so after one longer sync, a quick 7- or 30-day sync keeps trends up to date. 30 days keeps your baselines most accurate.</li>
+    <li>The CSV ZIP upload still works as before (and is the only way to bring in workout types for now).</li>
+  </ul>
+
+  <div class="card">
+    <p><b>Home Screen VitaIQ icon?</b> On iPhone, a website added to the Home Screen keeps its own separate storage from Safari. The shortcut always opens Safari, so synced data lands in Safari's VitaIQ. Use VitaIQ in Safari for synced data (you can add the <b>VitaIQ Sync</b> shortcut itself to the Home Screen instead).</p>
+  </div>
+  <p class="note" style="margin-top:20px">Health app limits: iOS keeps Health data locked while the iPhone is locked, so run the sync with the phone unlocked. Blood-oxygen dips are based on daily averages when synced this way.</p>
+</main>
+</body>
+</html>

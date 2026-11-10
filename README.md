@@ -37,7 +37,9 @@ src/components/Landing.jsx   landing page, language strings, upload handling
 src/components/Dashboard.jsx all dashboard tabs, AI coach, nutrition
 src/components/Admin.jsx     affiliate link admin
 src/lib/parseHealth.js       reads the Simple Health Export CSV zip in the browser
-src/lib/supabase.js          Supabase (users, uploads, affiliates, nutrition logs, meal photos)
+src/lib/supabase.js          Supabase (users, uploads, affiliates, nutrition logs, meal photos) — loaded lazily
+src/lib/shortcutSync.js      "Sync from iPhone": reads #sync=... data sent by the VitaIQ Sync Apple Shortcut
+public/shortcut.html         setup guide for the VitaIQ Sync shortcut
 netlify/functions/chat.js         AI Coach  → OpenRouter qwen/qwen3-14b
 netlify/functions/analyze-food.js food photo → OpenRouter google/gemini-2.5-flash-lite
 supabase/*.sql               table definitions (already applied — keep for reference)
@@ -62,3 +64,11 @@ supabase/*.sql               table definitions (already applied — keep for ref
 - Fixed: naps made Sleep Consistency 0/100.
 - Fixed: Sleep Stages always showed Core 0h.
 - Food analysis function rewritten (original source was lost); reads `VITAIQ_OPENROUTER_KEY`, falls back to the old name.
+
+## Added 10 Nov 2026
+
+- Sync from iPhone without the CSV app: an Apple Shortcut ("VitaIQ Sync", guide at /shortcut.html) reads Apple Health
+  and opens `/#sync=<gzip+base64 text>`. The data stays in the URL fragment (never sent to a server) and goes through
+  the same analysis as the ZIP upload (`analyzeRows` in parseHealth.js), then merges into history.
+- Today tab: "Sync from iPhone" card with a 7 / 30 days / 3 / 6 months picker that launches the shortcut.
+- Black-page fix: Supabase loads lazily; crashes show a "VitaIQ hit a snag" screen.

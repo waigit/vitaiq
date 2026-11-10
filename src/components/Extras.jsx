@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { CHECKIN_TAGS, loadCheckins, saveCheckin, localDay, computeCheckinInsights } from '../lib/insights'
 import { drawWeekCard, shareOrDownload } from '../lib/shareCard'
+import { shortcutRunUrl, isAppleMobile, SHORTCUT_NAME } from '../lib/shortcutSync'
 
 const G = '#00FF88', Y = '#FFD60A', B = '#4D9EFF', P = '#BF5AF2', R = '#FF3B5C'
 
@@ -187,6 +188,49 @@ export function InstallHint() {
       </div>
       {prompt && <button onClick={async () => { prompt.prompt(); try { await prompt.userChoice } catch {} ; window.__vitaiqInstallPrompt = null; setPrompt(null); close() }} style={{ background: G, color: '#000', border: 'none', borderRadius: 99, padding: '7px 12px', fontSize: 12, fontWeight: 800, cursor: 'pointer' }}>Install</button>}
       <button onClick={close} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontSize: 18, cursor: 'pointer', padding: 4 }}>×</button>
+    </div>
+  )
+}
+
+// ── Sync from iPhone (Apple Shortcut) ───────────────────────────────────────
+const SYNC_PERIODS = [7, 30, 90, 180]
+export function SyncFromIPhone({ compact = false }) {
+  const [days, setDays] = useState(() => { try { return +localStorage.getItem('vitaiq_sync_days') || 30 } catch { return 30 } })
+  const ios = isAppleMobile()
+  const pick = d => { setDays(d); try { localStorage.setItem('vitaiq_sync_days', String(d)) } catch {} }
+  const chip = d => (
+    <button key={d} onClick={() => pick(d)} style={{ background: d === days ? 'rgba(0,255,136,0.15)' : 'rgba(255,255,255,0.04)', color: d === days ? G : 'rgba(255,255,255,0.65)', border: `1px solid ${d === days ? 'rgba(0,255,136,0.45)' : 'rgba(255,255,255,0.1)'}`, borderRadius: 99, padding: '6px 11px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+      {d < 90 ? `${d} days` : `${d / 30} months`}
+    </button>
+  )
+  return (
+    <Card style={compact ? { padding: 16 } : {}}>
+      <Label>📲 Sync from iPhone</Label>
+      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.6, marginBottom: 12 }}>
+        Pull your latest Apple Health data straight in — no export app, no ZIP. Each sync adds to your history.
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>{SYNC_PERIODS.map(chip)}</div>
+      {ios
+        ? <a href={shortcutRunUrl(days)} style={{ display: 'block', textAlign: 'center', background: G, color: '#000', borderRadius: 12, padding: '12px 16px', fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>Sync last {days < 90 ? `${days} days` : `${days / 30} months`}</a>
+        : <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '10px 0' }}>Open VitaIQ in Safari on your iPhone to sync.</div>}
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 10, lineHeight: 1.6 }}>
+        Needs the free “{SHORTCUT_NAME}” shortcut (one-time setup) — <a href="/shortcut.html" style={{ color: G }}>set it up</a>. 7 days is quickest; 6 months can take ~20 s.
+      </div>
+    </Card>
+  )
+}
+
+// Banner shown while / after data arrives from the Shortcut
+export function SyncToast({ status, onClose }) {
+  if (!status) return null
+  const color = status.state === 'error' ? R : G
+  return (
+    <div style={{ position: 'fixed', left: 16, right: 16, top: 'calc(env(safe-area-inset-top, 0px) + 12px)', zIndex: 1000, maxWidth: 480, margin: '0 auto', background: 'rgba(18,18,26,0.97)', border: `1px solid ${color}55`, borderRadius: 14, padding: '12px 14px', display: 'flex', gap: 10, alignItems: 'flex-start', boxShadow: '0 8px 32px rgba(0,0,0,0.6)' }}>
+      <div style={{ fontSize: 18 }}>{status.state === 'busy' ? '⏳' : status.state === 'error' ? '⚠️' : '✅'}</div>
+      <div style={{ flex: 1, fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>
+        <b style={{ color: '#fff' }}>{status.title}</b>{status.detail && <><br />{status.detail}</>}
+      </div>
+      {status.state !== 'busy' && <button onClick={onClose} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontSize: 18, cursor: 'pointer', padding: 0 }}>×</button>}
     </div>
   )
 }

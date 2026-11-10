@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getAffiliates, getAffiliatesCached, weightedAffiliateRotation, uploadMealPhoto, saveNutritionLog, getNutritionHistory } from '../lib/supabase'
 import { computeStreaks, computeWeekStats, loadCheckins, computeCheckinInsights, CHECKIN_TAGS, localDay } from '../lib/insights'
-import { HistoryNote, StreaksCard, CheckInCard, CheckinInsightsCard, ShareWeekCard, InstallHint } from './Extras'
+import { HistoryNote, StreaksCard, CheckInCard, CheckinInsightsCard, ShareWeekCard, InstallHint, SyncFromIPhone } from './Extras'
 
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
@@ -1377,6 +1377,7 @@ For every other kind of question — workouts, sleep, readiness, general advice,
               </div>
             </Card>
             {!isDemo&&<HistoryNote meta={d.meta} onClear={onClearHistory}/>}
+            {!isDemo&&<SyncFromIPhone compact/>}
 
             {(d.alerts||[]).map((a,i)=>(
               <Card key={i} style={{borderLeft:'4px solid #FFD60A'}}>
