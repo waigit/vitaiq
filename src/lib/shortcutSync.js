@@ -83,31 +83,53 @@ export function decodeSyncPayload(raw) {
 }
 
 // Text from the Shortcut → { rows: {AppleType: [row]}, counts: {AppleType: n}, days }
+// Two layouts are accepted:
+//  • line mode:   "#Sleep" then one "start|end|value" line per sample (built with a Repeat loop)
+//  • column mode: "#Sleep starts" / "#Sleep ends" / "#Sleep values" (or "… dates" / "… values"),
+//    each followed by one item per line — the Shortcut inserts a whole list at once, no loop,
+//    which is much faster. Columns are paired up by position.
+const COLUMN = /\s+(start dates?|starts?|end dates?|ends?|dates?|values?)\s*$/i
+const colName = w => { w = w.toLowerCase(); return w.startsWith('end') ? 'end' : w.startsWith('value') ? 'value' : 'start' }
+
+function makeRow(type, start, end, value) {
+  if (!start) return null
+  if (type === 'SleepAnalysis') {
+    const stage = sleepStage(value || '')
+    return stage && end ? { startDate: start, endDate: end, value: stage } : null
+  }
+  let v = toNumber(value ?? '')
+  if (v == null) return null
+  if (type === 'OxygenSaturation' && v > 1.5) v = v / 100 // the CSV app uses 0.97, Shortcuts may give 97
+  return { startDate: start, endDate: end || start, value: String(v), sourceName: '' }
+}
+
 export function parseSyncText(text) {
-  const rows = {}, counts = {}
-  let type = null, days = null
+  const rows = {}, counts = {}, cols = {}
+  let type = null, col = null, days = null
+  const push = (t, r) => { if (r) (rows[t] || (rows[t] = [])).push(r) }
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim()
     if (!line) continue
     const m = line.match(/^VITAIQ\d*\b(.*)$/i)
     if (m) { const d = m[1].match(/days\s*=\s*(\d+)/i); if (d) days = +d[1]; continue }
-    if (line.startsWith('#')) { type = sectionType(line.slice(1)); continue }
-    if (!type) continue
-    const parts = line.split('|').map(p => p.trim())
-    if (parts.length < 2 || !parts[0]) continue
-    let row
-    if (type === 'SleepAnalysis') {
-      if (parts.length < 3) continue
-      const stage = sleepStage(parts[2])
-      if (!stage) continue
-      row = { startDate: parts[0], endDate: parts[1], value: stage }
-    } else {
-      let v = toNumber(parts[parts.length - 1])
-      if (v == null) continue
-      if (type === 'OxygenSaturation' && v > 1.5) v = v / 100 // the CSV app uses 0.97, Shortcuts may give 97
-      row = { startDate: parts[0], endDate: parts.length > 2 ? parts[1] : parts[0], value: String(v), sourceName: '' }
+    if (line.startsWith('#')) {
+      const h = line.slice(1).trim(), cm = h.match(COLUMN)
+      type = sectionType(cm ? h.slice(0, cm.index) : h)
+      col = cm && type ? colName(cm[1]) : null
+      if (col) ((cols[type] || (cols[type] = {}))[col] = [])
+      continue
     }
-    ;(rows[type] || (rows[type] = [])).push(row)
+    if (!type) continue
+    if (col) { cols[type][col].push(line); continue }
+    const parts = line.split('|').map(p => p.trim())
+    if (parts.length < 2) continue
+    if (type === 'SleepAnalysis') push(type, parts.length >= 3 ? makeRow(type, parts[0], parts[1], parts[2]) : null)
+    else push(type, makeRow(type, parts[0], parts.length > 2 ? parts[1] : parts[0], parts[parts.length - 1]))
+  }
+  for (const [t, c] of Object.entries(cols)) {
+    const start = c.start || [], end = c.end || [], value = c.value || []
+    const n = Math.min(start.length, value.length, t === 'SleepAnalysis' ? end.length : Infinity)
+    for (let i = 0; i < n; i++) push(t, makeRow(t, start[i], end[i], value[i]))
   }
   for (const [t, r] of Object.entries(rows)) counts[t] = r.length
   return { rows, counts, days }

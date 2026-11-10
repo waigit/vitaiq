@@ -85,11 +85,18 @@
   </table>
 
   <div class="card">
-    <p><b>Sleep is slightly different</b> (it has a start, an end and a stage):</p>
+    <p><b>Sleep is different — and has no Repeat</b> (a Sleep loop is very slow: hundreds of stages):</p>
     <ol>
-      <li><span class="a">Find Health Samples</span> where Type is <i>Sleep</i>, Start Date is in the last <b>Days</b> days, sorted by Start Date, Oldest First, <b>no grouping</b>.</li>
-      <li><span class="a">Repeat with Each</span> → <span class="a">Text</span>: <code>Start Date (ISO 8601)|End Date (ISO 8601)|Value</code> → <span class="a">End Repeat</span></li>
+      <li><span class="a">Find Health Samples</span> where Type is <i>Sleep</i>, Start Date is in the last <b>Days</b> days, sorted by Start Date, Oldest First, <b>no grouping</b>. Nothing else in this block.</li>
+      <li>In the combining Text (step 3), use three sections for Sleep instead of one — each inserts the sleep <b>Health Samples</b> directly: tap <b>Select Variable</b> → tap the Sleep <b>Find Health Samples</b> → tap the new token → pick the detail:
+<pre>#Sleep starts
+[Health Samples → Start Date, ISO 8601 + time]
+#Sleep ends
+[Health Samples → End Date, ISO 8601 + time]
+#Sleep values
+[Health Samples → Value]</pre></li>
     </ol>
+    <p class="note">The other metrics can also skip their loop the same way (<code>#Steps dates</code> + <code>#Steps values</code>), but they're grouped by day so their loops are short anyway.</p>
   </div>
 
   <h2>3 · Put it together and open VitaIQ</h2>
@@ -110,8 +117,12 @@
 [Repeat Results]
 #Exercise Minutes
 [Repeat Results]
-#Sleep
-[Repeat Results]</pre>
+#Sleep starts
+[Sleep Health Samples → Start Date]
+#Sleep ends
+[Sleep Health Samples → End Date]
+#Sleep values
+[Sleep Health Samples → Value]</pre>
       <span class="note">(add <code>#Cardio Fitness</code> / <code>#Respiratory Rate</code> sections too if you made those blocks)</span></li>
     <li><span class="a">Make Archive</span> from the <b>Text</b> · Format <b>gzip</b> · Name <code>vitaiq</code></li>
     <li><span class="a">Base64 Encode</span> the <b>Archive</b> · Line Breaks <b>None</b></li>
