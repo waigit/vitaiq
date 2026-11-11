@@ -393,6 +393,7 @@ export function analyzeRows(readRows, readRowsAll, meta) {
   out.daily.steps = Object.fromEntries(Object.entries(stepsByDay).map(([N, B]) => [N, Math.round(B)]));
   const activeByDay = dailyTotal(readRows("ActiveEnergyBurned"));
   const exerciseByDay = dailyTotal(readRows("AppleExerciseTime"));
+  if (Object.keys(exerciseByDay).length) out.daily.exercise = Object.fromEntries(Object.entries(exerciseByDay).map(([N, B]) => [N, Math.round(B)]));
   const basalByDay = dailyTotal(readRows("BasalEnergyBurned"));
   const hrvNow = out.latest.hrv || 35,
     hrvBase = out.latest.hrvBaseline || 35,

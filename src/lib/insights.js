@@ -119,6 +119,10 @@ export function computeWeekStats(d, extra = {}) {
   const hrv = pick(d.daily?.hrv)
   // null (shown as '–') when no workouts have ever arrived, e.g. a Shortcut sync without a Workouts block
   const workoutDays = (d.workouts || []).length ? new Set(d.workouts.filter(w => days.includes(w.date)).map(w => w.date)).size : null
+  // Without workouts (the iPhone Shortcut can't read them), count days with 30+ Apple exercise minutes
+  // — the default Exercise ring goal. Shown as "Active days", never as workouts.
+  const exMin = days.map(k => d.daily?.exercise?.[k]).filter(v => v != null)
+  const activeDays = workoutDays == null && exMin.length ? exMin.filter(v => v >= 30).length : null
   return {
     from: days[0], to: end,
     readiness: d.latest?.readiness ?? null,
@@ -126,6 +130,7 @@ export function computeWeekStats(d, extra = {}) {
     avgSteps: steps.length ? Math.round(mean(steps)) : null,
     avgHrv: hrv.length ? Math.round(mean(hrv)) : null,
     workoutDays,
+    activeDays,
     ...extra,
   }
 }
