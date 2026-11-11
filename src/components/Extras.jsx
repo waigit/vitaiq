@@ -209,7 +209,7 @@ export function SyncFromIPhone({ compact = false }) {
         When the shortcut asks <b style={{ color: 'rgba(255,255,255,0.75)' }}>How many days?</b> type: <b style={{ color: 'rgba(255,255,255,0.75)' }}>7</b> quick top-up · <b style={{ color: 'rgba(255,255,255,0.75)' }}>30</b> recommended · <b style={{ color: 'rgba(255,255,255,0.75)' }}>90–180</b> longer history (can take a minute). Workout heart rate always covers the last 7 days, so sync weekly to keep every session.
       </div>
       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 6, lineHeight: 1.6 }}>
-        First time? <a href={SHORTCUT_INSTALL_URL} target="_blank" rel="noopener" style={{ color: G, fontWeight: 700 }}>Get the free “{SHORTCUT_NAME}” shortcut</a> (one tap, on your iPhone) · <a href="/shortcut.html" style={{ color: G }}>how it works</a>.
+        {SHORTCUT_INSTALL_URL ? <>First time? <a href={SHORTCUT_INSTALL_URL} target="_blank" rel="noopener" style={{ color: G, fontWeight: 700 }}>Get the free “{SHORTCUT_NAME}” shortcut</a> (one tap, on your iPhone) · <a href="/shortcut.html" style={{ color: G }}>how it works</a>.</> : <>Needs the free “{SHORTCUT_NAME}” shortcut — <a href="/shortcut.html" style={{ color: G }}>setup guide</a>.</>}
       </div>
     </Card>
   )
