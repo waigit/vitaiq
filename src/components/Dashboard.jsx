@@ -1341,6 +1341,7 @@ For every other kind of question — workouts, sleep, readiness, general advice,
       ) : (<>
         {tab==='today'&&(
           <div style={{display:'grid',gap:12}}>
+            {!isDemo&&<SyncFromIPhone compact/>}
             <InstallHint/>
             <div style={{background:`linear-gradient(135deg,${rCol(todayReadiness)}0d 0%,rgba(10,10,15,0.6) 100%)`,border:`1px solid ${rCol(todayReadiness)}33`,borderRadius:14,padding:16}}>
               <div style={{display:'flex',alignItems:'center',gap:14}}>
@@ -1394,7 +1395,6 @@ For every other kind of question — workouts, sleep, readiness, general advice,
               </div>
             </Card>
             {!isDemo&&<HistoryNote meta={d.meta} onClear={onClearHistory}/>}
-            {!isDemo&&<SyncFromIPhone compact/>}
 
             {(d.alerts||[]).map((a,i)=>(
               <Card key={i} style={{borderLeft:'4px solid #FFD60A'}}>

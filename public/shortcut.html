@@ -36,42 +36,40 @@
 <body>
 <main>
   <div class="top"><a href="/">← Back to VitaIQ</a></div>
-  <div class="tag">One-time setup · about 15 minutes</div>
+  <div class="tag">One-time setup · about 5–10 minutes</div>
   <h1>Sync from iPhone <span>without an export app</span></h1>
-  <p>Build the free <b>VitaIQ Sync</b> shortcut once. After that, tap <b>Sync</b> in VitaIQ (or run the shortcut), type how many days, and your dashboard updates in a few seconds.</p>
-
+  <p>Build the free <b>VitaIQ Sync</b> shortcut once. After that, tap <b>Sync from iPhone</b> on VitaIQ's front page (or run the shortcut), type how many days, and your dashboard updates in a few seconds.</p>
 
   <div class="card g">
     <p><b>🔒 Private:</b> the shortcut reads Apple Health on your iPhone and opens VitaIQ with the data after a <code>#</code> in the link. Browsers never send that part to any server — the data is processed in Safari on your phone, same as a ZIP upload.</p>
   </div>
 
-  <h2>1 · Create the shortcut</h2>
-  <ol>
-    <li>Open the <b>Shortcuts</b> app → tap <b>+</b>.</li>
-    <li>Tap the name at the top → <b>Rename</b> → type exactly <code>VitaIQ Sync</code>.</li>
-    <li>This one is a setting, not an action (don't search for it): tap the small <b>⌄</b> next to the shortcut name at the top → <b>Details</b> (called <b>Settings</b> on some iOS versions) → turn on <b>Show in Share Sheet</b> → Done. A block <span class="a">Receive Any input from Share Sheet</span> appears at the top.</li>
-    <li>In that block, tap <b>Continue</b> (next to “If there's no input”) → choose <b>Ask For</b> → <b>Number</b>, and set the prompt to <code>How many days?</code>. This is how you pick the period when you run the shortcut yourself; VitaIQ's Sync button fills it in for you.</li>
-    <li>Add <span class="a">Set Variable</span>: name <code>Days</code>, value <b>Shortcut Input</b>.</li>
-  </ol>
-
-  <h2>2 · Add one block per metric</h2>
-  <p>Each block is 4 actions. Build the first one, then long-press each action → <b>Duplicate</b> to make the next block and just change the Type.</p>
   <div class="card">
+    <p><b>The whole shortcut at a glance</b> — no loops, no settings to hunt for:</p>
     <ol>
-      <li><span class="a">Find Health Samples</span> where <b>Type</b> is <i>Heart Rate Variability</i><br>
-        → <b>Add Filter</b>: <b>Start Date</b> · <b>is in the last</b> · <b>Days</b> (the variable) · <b>days</b><br>
-        → <b>Group By: Day</b> · <b>Fill Missing off</b> · Sort by <b>Start Date</b> · Order <b>Oldest First</b> · Limit <b>off</b></li>
-      <li><span class="a">Repeat with Each</span> item in <b>Health Samples</b></li>
-      <li>Inside the repeat: <span class="a">Text</span> containing<br>
-        <b>Repeat Item</b> → tap it → <b>Start Date</b> → Date Format <b>ISO 8601</b> (turn on <i>Include ISO 8601 Time</i>)<br>
-        then type <code>|</code><br>
-        then <b>Repeat Item</b> → <b>Value</b></li>
-      <li><span class="a">End Repeat</span> (added automatically)</li>
+      <li><span class="a">Ask for Input</span> — how many days</li>
+      <li>One <span class="a">Find Health Samples</span> per metric, with a <span class="a">Nothing</span> between them</li>
+      <li>One <span class="a">Text</span> that lists them all</li>
+      <li><span class="a">Make Archive</span> → <span class="a">Base64 Encode</span> → <span class="a">URL Encode</span> → <span class="a">Open URLs</span></li>
     </ol>
-    <p class="note">The Text inside should read like: <code>Start Date|Value</code></p>
   </div>
 
-  <p>Make one block for each of these:</p>
+  <h2>1 · Start the shortcut</h2>
+  <ol>
+    <li>Open the <b>Shortcuts</b> app → tap <b>+</b>. Tap the name at the top → <b>Rename</b> → type exactly <code>VitaIQ Sync</code>.</li>
+    <li>Add <span class="a">Ask for Input</span>: Input Type <b>Number</b>, prompt <code>How many days?</code>.</li>
+  </ol>
+
+  <h2>2 · Find each metric (2 actions each)</h2>
+  <p>Add <span class="a">Find Health Samples</span> and set it up once:</p>
+  <div class="card">
+    <ul>
+      <li><b>Type</b>: <i>Heart Rate Variability</i></li>
+      <li><b>Add Filter</b>: <b>Start Date</b> · <b>is in the last</b> · tap the number → <b>Provided Input</b> · <b>days</b></li>
+      <li><b>Group By: Day</b> · Sort by <b>Start Date</b> · Order <b>Oldest First</b> · Limit <b>off</b></li>
+    </ul>
+    <p class="note">Then for each next metric: add a <span class="a">Nothing</span> action, then long-press the first Find → <b>Duplicate</b>, drag the copy below the Nothing and change only its <b>Type</b>. The Nothing matters: without it Shortcuts turns the next Find into a <i>Filter</i> of the previous one and it finds nothing.</p>
+  </div>
   <table>
     <tr><th>Type in Shortcuts</th><th>Group by day</th><th></th></tr>
     <tr><td>Heart Rate Variability</td><td>Yes</td><td>needed</td></tr>
@@ -81,79 +79,73 @@
     <tr><td>Active Calories (Active Energy)</td><td>Yes</td><td>needed</td></tr>
     <tr><td>Resting Calories (Resting Energy)</td><td>Yes</td><td>for calorie goal</td></tr>
     <tr><td>Exercise Time (Exercise Minutes)</td><td>Yes</td><td>for strain + active days</td></tr>
+    <tr><td><b>Sleep</b></td><td><b>No</b> (turn grouping off)</td><td>needed</td></tr>
+    <tr id="heart-rate"><td><b>Heart Rate</b></td><td><b>No</b> · filter: last <b>7</b> days (type 7, not Provided Input)</td><td>🎾 workouts &amp; sessions</td></tr>
     <tr><td>Cardio Fitness (VO₂ Max)</td><td>Yes</td><td>optional</td></tr>
     <tr><td>Respiratory Rate</td><td>Yes</td><td>optional</td></tr>
   </table>
+  <p class="note">Heart Rate is fixed at 7 days because a month of workout heart rate is too much for Shortcuts.</p>
 
-  <div class="card">
-    <p><b>Sleep is different — and has no Repeat</b> (a Sleep loop is very slow: hundreds of stages):</p>
-    <ol>
-      <li><span class="a">Find Health Samples</span> where Type is <i>Sleep</i>, Start Date is in the last <b>Days</b> days, sorted by Start Date, Oldest First, <b>no grouping</b>. Nothing else in this block.</li>
-      <li>In the combining Text (step 3), use three sections for Sleep instead of one — each inserts the sleep <b>Health Samples</b> directly: tap <b>Select Variable</b> → tap the Sleep <b>Find Health Samples</b> → tap the new token → pick the detail:
-<pre>#Sleep starts
-[Health Samples → Start Date, ISO 8601 + time]
-#Sleep ends
-[Health Samples → End Date, ISO 8601 + time]
-#Sleep values
-[Health Samples → Value]</pre></li>
-    </ol>
-    <p class="note">The other metrics can also skip their loop the same way (<code>#Steps dates</code> + <code>#Steps values</code>), but they're grouped by day so their loops are short anyway.</p>
-  </div>
-
-  <div class="card g" id="heart-rate">
-    <p><b>🎾 Heart Rate: your tennis sessions and workouts</b> (same no-Repeat trick as Sleep)</p>
-    <ol>
-      <li><span class="a">Find Health Samples</span> where Type is <i>Heart Rate</i>, Start Date is in the last <b>7</b> days, sorted by Start Date, Oldest First, <b>no grouping</b>, Limit off. Put a <span class="a">Nothing</span> action before and after this block, otherwise Shortcuts turns it into a <i>Filter</i> of the Sleep results and it finds nothing. Type the number 7 here, not the Days variable: a month of workout heart rate is too much for Shortcuts.</li>
-      <li>In the combining Text, add two sections that insert this block's <b>Health Samples</b> directly:
-<pre>#Heart Rate starts
-[Health Samples → Start Date, ISO 8601 + time]
-#Heart Rate ends
-[Health Samples → End Date, ISO 8601 + time]
-#Heart Rate values
-[Health Samples → Value]</pre>
-      <span class="note">Add the <b>ends</b> section too: during workouts the watch may store heart rate as readings that each span a few minutes, and the end time lets VitaIQ find those sessions.</span></li>
-    </ol>
-    <p class="note">Shortcuts can't read workouts (there's no Workouts type), but during a recorded workout your Apple Watch measures heart rate every few seconds instead of every few minutes. VitaIQ finds those stretches and shows each one under <b>Effort → Sessions</b>, with its heart-rate curve, average/max and time in zones. Tap a session to tag it (e.g. Tennis). Heart rate adds many readings, so use 7–30 days for regular syncs.</p>
-    <p class="note">Share card: those sessions count as <b>Workout days</b>. With no sessions found, it shows <b>Active days</b> (days with 30+ exercise minutes) instead.</p>
-  </div>
-
-  <h2>3 · Put it together and open VitaIQ</h2>
+  <h2>3 · One Text, then open VitaIQ</h2>
   <ol>
-    <li>Add a <span class="a">Text</span> action after the last block. Type the lines below; where it says <b>[Repeat Results]</b>, tap <b>Select Variable</b> and tap the <b>End Repeat</b> of that metric's block:
+    <li>Add a <span class="a">Text</span> action at the end. Type the lines below. Every <b>[…]</b> is a variable: tap <b>Select Variable</b> → tap that metric's <b>Find Health Samples</b> action → tap the new token → choose the detail:
+      <ul>
+        <li><b>Start Date</b> / <b>End Date</b> → Date Format <b>ISO 8601</b> with <i>Include ISO 8601 Time</i> on</li>
+        <li><b>Value</b> → as is</li>
+      </ul>
 <pre>VITAIQ1
-#Heart Rate Variability
-[Repeat Results]
-#Resting Heart Rate
-[Repeat Results]
-#Blood Oxygen
-[Repeat Results]
-#Steps
-[Repeat Results]
-#Active Energy
-[Repeat Results]
-#Resting Energy
-[Repeat Results]
-#Exercise Minutes
-[Repeat Results]
+#HRV dates
+[HRV → Start Date]
+#HRV values
+[HRV → Value]
+#Resting Heart Rate dates
+[Resting HR → Start Date]
+#Resting Heart Rate values
+[Resting HR → Value]
+#Blood Oxygen dates
+[Blood Oxygen → Start Date]
+#Blood Oxygen values
+[Blood Oxygen → Value]
+#Steps dates
+[Steps → Start Date]
+#Steps values
+[Steps → Value]
+#Active Energy dates
+[Active Energy → Start Date]
+#Active Energy values
+[Active Energy → Value]
+#Resting Energy dates
+[Resting Energy → Start Date]
+#Resting Energy values
+[Resting Energy → Value]
+#Exercise Minutes dates
+[Exercise Time → Start Date]
+#Exercise Minutes values
+[Exercise Time → Value]
 #Sleep starts
-[Sleep Health Samples → Start Date]
+[Sleep → Start Date]
 #Sleep ends
-[Sleep Health Samples → End Date]
+[Sleep → End Date]
 #Sleep values
-[Sleep Health Samples → Value]
+[Sleep → Value]
 #Heart Rate starts
-[Heart Rate Health Samples → Start Date]
+[Heart Rate → Start Date]
 #Heart Rate ends
-[Heart Rate Health Samples → End Date]
+[Heart Rate → End Date]
 #Heart Rate values
-[Heart Rate Health Samples → Value]</pre>
-      <span class="note">(add <code>#Cardio Fitness</code> / <code>#Respiratory Rate</code> sections too if you made those blocks)</span></li>
+[Heart Rate → Value]</pre>
+      <span class="note">Each header must be on its own line, with the variable on the next line. Add <code>#Cardio Fitness dates/values</code> or <code>#Respiratory Rate dates/values</code> the same way if you made those. Tip: long-press a token → <b>Rename</b> to label it (e.g. “Steps”) so they're easy to tell apart.</span></li>
     <li><span class="a">Make Archive</span> from the <b>Text</b> · Format <b>gzip</b> · Name <code>vitaiq</code></li>
     <li><span class="a">Base64 Encode</span> the <b>Archive</b> · Line Breaks <b>None</b></li>
     <li><span class="a">URL Encode</span> the <b>Base64 Encoded</b> result</li>
     <li><span class="a">Open URLs</span>: type <code>https://vitalstats.netlify.app/#sync=</code> and right after it insert <b>URL Encoded Text</b> (no space).</li>
   </ol>
-  <p class="note">Compression keeps the link small. If Make Archive gives you trouble, you can skip steps 2–3 and URL-encode the Text directly — VitaIQ reads both.</p>
+  <p class="note">Compression keeps the link small. If Make Archive gives you trouble, skip the Make Archive and Base64 steps and URL-encode the Text directly — VitaIQ reads both.</p>
+
+  <div class="card">
+    <p class="note"><b>About sessions:</b> Shortcuts can't read workouts, but during a recorded workout your Apple Watch measures heart rate every few seconds. VitaIQ finds those stretches and shows each one under <b>Effort → Sessions</b> with its heart-rate curve, average/max and time in zones — tap one to tag it (e.g. Tennis). The share card counts them as <b>Workout days</b>; with none found it shows <b>Active days</b> (30+ exercise minutes).</p>
+    <p class="note"><b>Already built the older version</b> (with Repeat loops or Share Sheet input)? It still works — no need to rebuild.</p>
+  </div>
 
   <h2>4 · First run</h2>
   <ul>
@@ -164,7 +156,7 @@
 
   <h2>Using it</h2>
   <ul>
-    <li><b>From VitaIQ:</b> on the Today tab tap <b>Sync from iPhone</b>, then type the number of days when the shortcut asks (7 quick · 30 recommended · 90–180 longer history).</li>
+    <li><b>From VitaIQ:</b> tap <b>Sync from iPhone</b> on the front page (or at the top of the Today tab), then type the number of days when the shortcut asks (7 quick · 30 recommended · 90–180 longer history).</li>
     <li><b>From anywhere:</b> run <b>VitaIQ Sync</b> (Home Screen icon, widget, Siri, or Apple Watch) and type the number of days.</li>
     <li>Every sync is added to the history saved in Safari, so after one longer sync, a quick 7- or 30-day sync keeps trends up to date. 30 days keeps your baselines most accurate.</li>
     <li>The CSV ZIP upload still works as before.</li>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getAffiliatesCached, weightedAffiliateRotation, trackUpload } from '../lib/supabase'
 import { parseHealthZip } from '../lib/parseHealth'
+import { shortcutRunUrl, isAppleMobile, SHORTCUT_NAME } from '../lib/shortcutSync'
 
 const SIMPLE_HEALTH_URL = "https://apps.apple.com/us/app/simple-health-export-csv/id1535380115",
   LANGS = {
@@ -453,6 +454,28 @@ const SHOWCASE_SLIDES = [{
     }}>Should I play tennis today?</div></div>
 }];
 
+// "Sync from iPhone" — the main way in, shown on the front page as soon as it loads
+function SyncHero() {
+  const ios = isAppleMobile();
+  return <div style={{
+    border: "1px solid rgba(0,255,136,0.35)",
+    background: "linear-gradient(135deg, rgba(0,255,136,0.10) 0%, rgba(0,255,136,0.03) 100%)",
+    borderRadius: 12,
+    padding: "14px 14px 12px",
+    marginBottom: 10
+  }}><div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}><div style={{ fontSize: 24 }}>📲</div><div><div style={{ fontSize: 14, fontWeight: 800, color: "#fff" }}>Sync from iPhone</div><div style={{ fontSize: 11, color: "rgba(255,255,255,0.55)", lineHeight: 1.4 }}>Apple Health straight in — no export app, no ZIP.</div></div></div><a href={ios ? shortcutRunUrl() : "/shortcut.html"} style={{
+      display: "block",
+      textAlign: "center",
+      background: "#00FF88",
+      color: "#000",
+      borderRadius: 10,
+      padding: "11px 14px",
+      fontWeight: 800,
+      fontSize: 14,
+      textDecoration: "none"
+    }}>{ios ? "Sync from iPhone" : "Set up iPhone sync"}</a><div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", textAlign: "center", marginTop: 8, lineHeight: 1.5 }}>{ios ? <>First time? <a href="/shortcut.html" style={{ color: "#00FF88", fontWeight: 700, textDecoration: "none" }}>Make the free “{SHORTCUT_NAME}” shortcut →</a> (one time, ~5 min)</> : <>Uses a free Apple Shortcut on your iPhone · one-time setup, ~5 min</>}</div></div>;
+}
+
 function FeatureShowcase() {
   const [e, t] = useState(0),
     [r, n] = useState(0);
@@ -888,7 +911,7 @@ function Landing({
           marginBottom: 16
         }}>{b.headline1}<br /><span style={{
             color: "#00FF88"
-          }}>{b.headline2}</span>{b.headline3 && <><br />{b.headline3}</>}</div><div onDragOver={k => {
+          }}>{b.headline2}</span>{b.headline3 && <><br />{b.headline3}</>}</div><SyncHero /><div style={{ display: "flex", alignItems: "center", gap: 10, margin: "2px 0 10px", fontSize: 10, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: 1.5 }}><span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} />or upload a ZIP<span style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.1)" }} /></div><div onDragOver={k => {
           k.preventDefault(), h(true);
         }} onDragLeave={() => h(false)} onDrop={_} onClick={() => {
           var k;
@@ -952,17 +975,7 @@ function Landing({
           color: "rgba(255,255,255,0.28)",
           textAlign: "center",
           marginBottom: 14
-        }}>{b.privacy}</div><a href="/shortcut.html" style={{
-          display: "block",
-          textAlign: "center",
-          fontSize: 12.5,
-          color: "rgba(255,255,255,0.55)",
-          textDecoration: "none",
-          marginBottom: 10
-        }}>{"New: "}<b style={{
-            color: "#00FF88",
-            fontWeight: 700
-          }}>📲 Sync straight from your iPhone</b>{" — no export app →"}</a><a onClick={r} style={{
+        }}>{b.privacy}</div><a onClick={r} style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
