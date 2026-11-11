@@ -13,6 +13,8 @@ import { ungzip } from 'pako'
 import { analyzeRows, readZipText } from './parseHealth.js'
 
 export const SHORTCUT_NAME = 'VitaIQ Sync'
+// Ready-made shortcut shared by Wai Git (an iCloud link is a snapshot: update it when the shortcut changes)
+export const SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/008077ab91d541b6b0095710637052f8'
 export const shortcutRunUrl = days =>
   `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT_NAME)}${days ? `&input=text&text=${days}` : ''}`
 

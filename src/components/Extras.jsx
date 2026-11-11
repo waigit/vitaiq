@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { CHECKIN_TAGS, loadCheckins, saveCheckin, localDay, computeCheckinInsights } from '../lib/insights'
 import { drawWeekCard, shareOrDownload } from '../lib/shareCard'
-import { shortcutRunUrl, isAppleMobile, SHORTCUT_NAME } from '../lib/shortcutSync'
+import { shortcutRunUrl, isAppleMobile, SHORTCUT_NAME, SHORTCUT_INSTALL_URL } from '../lib/shortcutSync'
 
 const G = '#00FF88', Y = '#FFD60A', B = '#4D9EFF', P = '#BF5AF2', R = '#FF3B5C'
 
@@ -206,10 +206,10 @@ export function SyncFromIPhone({ compact = false }) {
         ? <a href={shortcutRunUrl()} style={{ display: 'block', textAlign: 'center', background: G, color: '#000', borderRadius: 12, padding: '12px 16px', fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>Sync from iPhone</a>
         : <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '10px 0' }}>Open VitaIQ in Safari on your iPhone to sync.</div>}
       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 10, lineHeight: 1.6 }}>
-        When the shortcut asks <b style={{ color: 'rgba(255,255,255,0.75)' }}>How many days?</b> type: <b style={{ color: 'rgba(255,255,255,0.75)' }}>7</b> quick top-up · <b style={{ color: 'rgba(255,255,255,0.75)' }}>30</b> recommended · <b style={{ color: 'rgba(255,255,255,0.75)' }}>90–180</b> longer history (can take a minute).
+        When the shortcut asks <b style={{ color: 'rgba(255,255,255,0.75)' }}>How many days?</b> type: <b style={{ color: 'rgba(255,255,255,0.75)' }}>7</b> quick top-up · <b style={{ color: 'rgba(255,255,255,0.75)' }}>30</b> recommended · <b style={{ color: 'rgba(255,255,255,0.75)' }}>90–180</b> longer history (can take a minute). Workout heart rate always covers the last 7 days, so sync weekly to keep every session.
       </div>
       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 6, lineHeight: 1.6 }}>
-        Needs the free “{SHORTCUT_NAME}” shortcut — <a href="/shortcut.html" style={{ color: G }}>setup guide</a>.
+        First time? <a href={SHORTCUT_INSTALL_URL} target="_blank" rel="noopener" style={{ color: G, fontWeight: 700 }}>Get the free “{SHORTCUT_NAME}” shortcut</a> (one tap, on your iPhone) · <a href="/shortcut.html" style={{ color: G }}>how it works</a>.
       </div>
     </Card>
   )
