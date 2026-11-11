@@ -82,7 +82,7 @@ export function computeStreaks(d, nutritionAll = {}) {
     out.steps = { ...runs(days, k => d.daily.steps[k] >= STEP_GOAL), asOf: last, goal: STEP_GOAL }
   }
 
-  const workouts = d.workouts || []
+  const workouts = workoutDates(d).map(date => ({ date }))
   if (workouts.length) {
     const weekOf = date => { const x = new Date(date + 'T00:00:00Z'); const dow = (x.getUTCDay() + 6) % 7; x.setUTCDate(x.getUTCDate() - dow); return x.toISOString().slice(0, 10) }
     const daysPerWeek = {}
@@ -108,6 +108,11 @@ export function computeStreaks(d, nutritionAll = {}) {
   return out
 }
 
+// Days with a workout: Apple workouts (ZIP) + recorded sessions found in heart-rate data (iPhone sync)
+function workoutDates(d) {
+  return [...new Set([...(d.workouts || []), ...(d.sessions || [])].map(w => w.date).filter(Boolean))].sort()
+}
+
 // ── Weekly stats for the share card ─────────────────────────────────────────
 export function computeWeekStats(d, extra = {}) {
   const end = d.meta?.endDate
@@ -118,7 +123,8 @@ export function computeWeekStats(d, extra = {}) {
   const steps = pick(d.daily?.steps)
   const hrv = pick(d.daily?.hrv)
   // null (shown as '–') when no workouts have ever arrived, e.g. a Shortcut sync without a Workouts block
-  const workoutDays = (d.workouts || []).length ? new Set(d.workouts.filter(w => days.includes(w.date)).map(w => w.date)).size : null
+  const wDates = workoutDates(d)
+  const workoutDays = wDates.length ? wDates.filter(x => days.includes(x)).length : null
   // Without workouts (the iPhone Shortcut can't read them), count days with 30+ Apple exercise minutes
   // — the default Exercise ring goal. Shown as "Active days", never as workouts.
   const exMin = days.map(k => d.daily?.exercise?.[k]).filter(v => v != null)

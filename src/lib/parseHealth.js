@@ -1,4 +1,5 @@
 import { inflateRaw } from 'pako'
+import { buildSessions } from './sessions.js';
 
 function readU16(e, t) {
   return e[t] | e[t + 1] << 8;
@@ -153,7 +154,10 @@ export async function parseHealthZip(file) {
     bytes = new Uint8Array(buffer),
     zipDir = readZipDirectory(bytes),
     readRows = N => {
-      const B = findZipEntry(zipDir, N);
+      // "HeartRate" must not match RestingHeartRate / HeartRateVariabilitySDNN / WalkingHeartRateAverage
+      const B = N === "HeartRate"
+        ? Object.entries(zipDir).find(([r]) => /(^|[^A-Za-z]|Identifier)HeartRate(?![A-Za-z])/.test(r.split("/").pop()))?.[1] || null
+        : findZipEntry(zipDir, N);
       if (!B) return [];
       try {
         return parseCSV(extractZipEntry(bytes, B));
@@ -446,11 +450,16 @@ export function analyzeRows(readRows, readRowsAll, meta) {
       };
     });
   }
-  const workouts = readRowsAll("WorkoutActivityType").map(N => {
+  const workoutTypeName = v => {
+    let q = (v || "Workout").toString().trim();
+    q = q.replace(/^HKWorkoutActivityType/, ""), q = q.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+    return q || "Workout";
+  };
+  const workoutRows = readRowsAll("WorkoutActivityType");
+  const workouts = workoutRows.map(N => {
     const B = dayKey(N.startDate);
     if (!B) return null;
-    let q = (N.activityType || "Workout").toString().trim();
-    q = q.replace(/^HKWorkoutActivityType/, ""), q = q.replace(/([a-z0-9])([A-Z])/g, "$1 $2"), q || (q = "Workout");
+    const q = workoutTypeName(N.activityType);
     const re = num(N.duration),
       ne = re != null ? parseFloat((re / 60).toFixed(1)) : null;
     return {
@@ -461,6 +470,13 @@ export function analyzeRows(readRows, readRowsAll, meta) {
     };
   }).filter(Boolean);
   out.workouts = workouts;
+  // Sessions with heart rate (Apple workouts + sessions detected from workout-mode HR sampling)
+  try {
+    const hrRows = readRows("HeartRate");
+    out.sessions = hrRows.length || workoutRows.length ? buildSessions({ workoutRows, hrRows, dayKey, typeName: workoutTypeName, parse: parseAppleDate }) : [];
+  } catch (e) {
+    console.warn("sessions:", e), out.sessions = [];
+  }
   const insights = computeHabitInsights(out);
   if (out.habitInsights = insights, out.meta.startDate && out.meta.endDate) {
     const N = Math.round((new Date(out.meta.endDate) - new Date(out.meta.startDate)) / 86400000),

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getAffiliates, getAffiliatesCached, weightedAffiliateRotation, uploadMealPhoto, saveNutritionLog, getNutritionHistory } from '../lib/supabase'
 import { computeStreaks, computeWeekStats, loadCheckins, computeCheckinInsights, CHECKIN_TAGS, localDay } from '../lib/insights'
+import { SessionsCard } from './Sessions'
 import { HistoryNote, StreaksCard, CheckInCard, CheckinInsightsCard, ShareWeekCard, InstallHint, SyncFromIPhone } from './Extras'
 
 import {
@@ -1664,6 +1665,7 @@ For every other kind of question — workouts, sleep, readiness, general advice,
 
         {tab==='effort'&&(
           <div style={{display:'grid',gap:14}}>
+            <SessionsCard sessions={d.sessions||[]}/>
             <AffiliateInlineCard tab='effort'/>
             <Card>
               <Label>VO2 Max — {durLabel}</Label>

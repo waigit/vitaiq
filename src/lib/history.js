@@ -18,7 +18,7 @@ function saveHistory(h) {
     // Storage full: drop the oldest 20% of daily/sleep entries and try once more
     try {
       const trim = obj => { const k = Object.keys(obj).sort(); k.slice(0, Math.ceil(k.length * 0.2)).forEach(x => delete obj[x]) }
-      Object.values(h.daily).forEach(trim); trim(h.sleep); trim(h.sleepTimes)
+      Object.values(h.daily).forEach(trim); trim(h.sleep); trim(h.sleepTimes); if (h.sessions) trim(h.sessions)
       localStorage.setItem(KEY, JSON.stringify(h)); return true
     } catch { console.warn('VitaIQ history not saved:', e); return false }
   }
@@ -68,6 +68,15 @@ export function mergeUpload(fresh) {
   for (const [date, v] of Object.entries(fresh.sleep || {})) if (!keepOld(date, h.sleep[date])) h.sleep[date] = v
   for (const t of fresh.sleepTimes || []) if (!keepOld(t.night, h.sleepTimes[t.night])) h.sleepTimes[t.night] = t
   for (const w of fresh.workouts || []) h.workouts[`${w.date}|${w.type}|${w.durationMin ?? ''}`] = w
+  // Sessions: keyed by start minute. An Apple workout replaces a detected session that overlaps it.
+  h.sessions = h.sessions || {}
+  for (const s of fresh.sessions || []) {
+    if (s.source === 'workout') {
+      for (const [k, o] of Object.entries(h.sessions)) if (o.source === 'detected' && o.start < s.end && s.start < o.end) delete h.sessions[k]
+    } else if (Object.values(h.sessions).some(o => o.source === 'workout' && o.start < s.end && s.start < o.end)) continue
+    const prev = h.sessions[s.id]
+    if (!prev || (s.hr?.samples || 0) >= (prev.hr?.samples || 0) || s.source === 'workout') h.sessions[s.id] = { ...s, hr: s.hr || prev?.hr || null }
+  }
 
   h.uploads = [...(h.uploads || []), { at: fresh.meta.uploadedAt, start, end, file: fresh.meta.fileName }].slice(-50)
   saveHistory(h)
@@ -83,6 +92,7 @@ function buildView(fresh, h) {
   view.sleep = { ...h.sleep }
   view.sleepTimes = Object.values(h.sleepTimes).sort((a, b) => a.night.localeCompare(b.night))
   view.workouts = Object.values(h.workouts).sort((a, b) => a.date.localeCompare(b.date))
+  view.sessions = Object.values(h.sessions || {}).sort((a, b) => a.start.localeCompare(b.start))
 
   const starts = h.uploads.map(u => u.start).filter(Boolean), ends = h.uploads.map(u => u.end).filter(Boolean)
   if (starts.length && ends.length) {

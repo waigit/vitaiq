@@ -99,8 +99,18 @@
     <p class="note">The other metrics can also skip their loop the same way (<code>#Steps dates</code> + <code>#Steps values</code>), but they're grouped by day so their loops are short anyway.</p>
   </div>
 
-  <div class="card">
-    <p><b>Workouts:</b> Shortcuts' Find Health Samples has no Workouts type, so there's no block for them. VitaIQ uses your <b>Exercise Minutes</b> block instead: the share card shows <b>Active days</b>, meaning days with 30+ exercise minutes (the default Exercise ring goal). Workouts by type still come in with the CSV ZIP upload.</p>
+  <div class="card g" id="heart-rate">
+    <p><b>🎾 Heart Rate: your tennis sessions and workouts</b> (same no-Repeat trick as Sleep)</p>
+    <ol>
+      <li><span class="a">Find Health Samples</span> where Type is <i>Heart Rate</i>, Start Date is in the last <b>Days</b> days, sorted by Start Date, Oldest First, <b>no grouping</b>, Limit off.</li>
+      <li>In the combining Text, add two sections that insert this block's <b>Health Samples</b> directly:
+<pre>#Heart Rate starts
+[Health Samples → Start Date, ISO 8601 + time]
+#Heart Rate values
+[Health Samples → Value]</pre></li>
+    </ol>
+    <p class="note">Shortcuts can't read workouts (there's no Workouts type), but during a recorded workout your Apple Watch measures heart rate every few seconds instead of every few minutes. VitaIQ finds those stretches and shows each one under <b>Effort → Sessions</b>, with its heart-rate curve, average/max and time in zones. Tap a session to tag it (e.g. Tennis). Heart rate adds many readings, so use 7–30 days for regular syncs.</p>
+    <p class="note">Share card: those sessions count as <b>Workout days</b>. With no sessions found, it shows <b>Active days</b> (days with 30+ exercise minutes) instead.</p>
   </div>
 
   <h2>3 · Put it together and open VitaIQ</h2>
@@ -126,7 +136,11 @@
 #Sleep ends
 [Sleep Health Samples → End Date]
 #Sleep values
-[Sleep Health Samples → Value]</pre>
+[Sleep Health Samples → Value]
+#Heart Rate starts
+[Heart Rate Health Samples → Start Date]
+#Heart Rate values
+[Heart Rate Health Samples → Value]</pre>
       <span class="note">(add <code>#Cardio Fitness</code> / <code>#Respiratory Rate</code> sections too if you made those blocks)</span></li>
     <li><span class="a">Make Archive</span> from the <b>Text</b> · Format <b>gzip</b> · Name <code>vitaiq</code></li>
     <li><span class="a">Base64 Encode</span> the <b>Archive</b> · Line Breaks <b>None</b></li>

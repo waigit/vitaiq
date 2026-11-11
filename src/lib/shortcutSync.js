@@ -27,6 +27,8 @@ const SECTIONS = [
   [/variab|hrv/, 'HeartRateVariabilitySDNN'],
   [/resting energy|resting cal|basal/, 'BasalEnergyBurned'],
   [/resting heart|resting hr|rhr/, 'RestingHeartRate'],
+  [/walking heart/, null], // walking HR average isn't used
+  [/heart rate|^hr$|pulse/, 'HeartRate'], // raw samples (no grouping) → exercise sessions with HR
   [/oxygen|spo2/, 'OxygenSaturation'],
   [/respirat/, 'RespiratoryRate'],
   [/vo2|cardio fitness/, 'VO2Max'],
@@ -182,5 +184,6 @@ export function summarizeSync(data, counts) {
   if (counts.OxygenSaturation) parts.push('SpO2')
   if (counts.ActiveEnergyBurned) parts.push('Active energy')
   if (counts.WorkoutActivityType) parts.push(`Workouts ${counts.WorkoutActivityType}`)
+  if (counts.HeartRate) parts.push(`Heart rate${data.sessions?.length ? ` · ${data.sessions.length} session${data.sessions.length === 1 ? '' : 's'}` : ''}`)
   return parts.join(' · ')
 }
