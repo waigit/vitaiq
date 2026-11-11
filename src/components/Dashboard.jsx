@@ -1665,7 +1665,7 @@ For every other kind of question — workouts, sleep, readiness, general advice,
 
         {tab==='effort'&&(
           <div style={{display:'grid',gap:14}}>
-            <SessionsCard sessions={d.sessions||[]}/>
+            <SessionsCard sessions={d.sessions||[]} hrDiag={d.hrDiag||null}/>
             <AffiliateInlineCard tab='effort'/>
             <Card>
               <Label>VO2 Max — {durLabel}</Label>

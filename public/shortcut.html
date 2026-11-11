@@ -106,8 +106,11 @@
       <li>In the combining Text, add two sections that insert this block's <b>Health Samples</b> directly:
 <pre>#Heart Rate starts
 [Health Samples → Start Date, ISO 8601 + time]
+#Heart Rate ends
+[Health Samples → End Date, ISO 8601 + time]
 #Heart Rate values
-[Health Samples → Value]</pre></li>
+[Health Samples → Value]</pre>
+      <span class="note">Add the <b>ends</b> section too: during workouts the watch may store heart rate as readings that each span a few minutes, and the end time lets VitaIQ find those sessions.</span></li>
     </ol>
     <p class="note">Shortcuts can't read workouts (there's no Workouts type), but during a recorded workout your Apple Watch measures heart rate every few seconds instead of every few minutes. VitaIQ finds those stretches and shows each one under <b>Effort → Sessions</b>, with its heart-rate curve, average/max and time in zones. Tap a session to tag it (e.g. Tennis). Heart rate adds many readings, so use 7–30 days for regular syncs.</p>
     <p class="note">Share card: those sessions count as <b>Workout days</b>. With no sessions found, it shows <b>Active days</b> (days with 30+ exercise minutes) instead.</p>
@@ -139,6 +142,8 @@
 [Sleep Health Samples → Value]
 #Heart Rate starts
 [Heart Rate Health Samples → Start Date]
+#Heart Rate ends
+[Heart Rate Health Samples → End Date]
 #Heart Rate values
 [Heart Rate Health Samples → Value]</pre>
       <span class="note">(add <code>#Cardio Fitness</code> / <code>#Respiratory Rate</code> sections too if you made those blocks)</span></li>

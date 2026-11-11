@@ -1,5 +1,5 @@
 import { inflateRaw } from 'pako'
-import { buildSessions } from './sessions.js';
+import { buildSessions, hrDiagnostics } from './sessions.js';
 
 function readU16(e, t) {
   return e[t] | e[t + 1] << 8;
@@ -474,6 +474,7 @@ export function analyzeRows(readRows, readRowsAll, meta) {
   try {
     const hrRows = readRows("HeartRate");
     out.sessions = hrRows.length || workoutRows.length ? buildSessions({ workoutRows, hrRows, dayKey, typeName: workoutTypeName, parse: parseAppleDate }) : [];
+    out.hrDiag = hrRows.length ? hrDiagnostics(hrRows) : null;
   } catch (e) {
     console.warn("sessions:", e), out.sessions = [];
   }

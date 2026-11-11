@@ -14,22 +14,47 @@ const MERGE_GAP_S = 3 * 60   // a short pause (water break, changeover) doesn't 
 const MAX_POINTS = 180       // series is averaged into at most this many points
 
 let parseDate = s => new Date(s)
-const t = s => { const d = s ? parseDate(s) : null; const v = d ? d.getTime() : NaN; return isNaN(v) ? null : v }
+const t = s => {
+  if (!s) return null
+  let d = parseDate(s), v = d ? d.getTime() : NaN
+  if (isNaN(v)) v = new Date(String(s).replace(/\s+at\s+/i, ' ').replace(/\u202f/g, ' ')).getTime() // "11 Nov 2026 at 7:00 PM"
+  return isNaN(v) ? null : v
+}
 const num = v => { const n = parseFloat(String(v ?? '').replace(',', '.')); return isNaN(n) ? null : n }
 
-// [{startDate, value}] → sorted [[ms, bpm]] (plausible values only)
+// [{startDate, endDate?, value}] → sorted [[ms, bpm, endMs]] (plausible values only).
+// During workouts HealthKit may store heart rate as "series" samples that span a stretch of
+// time (start < end) instead of one reading every few seconds; endMs keeps that span.
 export function hrSamples(rows) {
   const out = []
   for (const r of rows || []) {
     const ms = t(r.startDate), v = num(r.value)
-    if (ms != null && v != null && v >= 30 && v <= 230) out.push([ms, v])
+    if (ms == null || v == null || v < 30 || v > 230) continue
+    const e = r.endDate && r.endDate !== r.startDate ? t(r.endDate) : null
+    out.push([ms, v, e != null && e > ms && e - ms < 6 * 3600e3 ? e : ms])
   }
   return out.sort((a, b) => a[0] - b[0])
 }
 
+// What arrived, for troubleshooting when no sessions are found
+export function hrDiagnostics(rows) {
+  const s = hrSamples(rows)
+  const gaps = []
+  for (let i = 1; i < s.length; i++) gaps.push((s[i][0] - s[i - 1][0]) / 1000)
+  gaps.sort((a, b) => a - b)
+  return {
+    raw: (rows || []).length, parsed: s.length,
+    first: s[0] ? new Date(s[0][0]).toISOString() : null, last: s.length ? new Date(s[s.length - 1][0]).toISOString() : null,
+    medianGapS: gaps.length ? Math.round(gaps[Math.floor(gaps.length / 2)]) : null,
+    shortGaps: gaps.filter(g => g <= DENSE_GAP_S).length,
+    withSpan: s.filter(x => x[2] - x[0] >= 20e3).length,
+    sampleStart: (rows || [])[0]?.startDate ?? null,
+  }
+}
+
 function hrStats(samples, startMs, endMs) {
   const s = samples.filter(([ms]) => ms >= startMs - 30e3 && ms <= endMs + 30e3)
-  if (s.length < 3) return null
+  if (!s.length) return null
   const vals = s.map(x => x[1])
   // Time-weighted average (gaps capped at 60 s, so a sparse stretch doesn't dominate)
   let wsum = 0, w = 0
@@ -51,15 +76,21 @@ function hrStats(samples, startMs, endMs) {
 // Runs of dense heart-rate sampling → [{startMs, endMs}]
 function detectRuns(samples) {
   const runs = []
-  let a = 0
-  for (let i = 1; i <= samples.length; i++) {
-    if (i === samples.length || samples[i][0] - samples[i - 1][0] > DENSE_GAP_S * 1000) {
-      if (i - a >= 10) runs.push({ startMs: samples[a][0], endMs: samples[i - 1][0] })
-      a = i
+  let cur = null
+  for (const [ms, , end] of samples) {
+    const isSpan = end - ms >= 60e3
+    if (cur && ms - cur.reach <= DENSE_GAP_S * 1000) {
+      cur.n++; cur.reach = Math.max(cur.reach, end, ms); if (isSpan) cur.spans++
+    } else {
+      if (cur) runs.push(cur)
+      cur = { startMs: ms, reach: Math.max(ms, end), n: 1, spans: isSpan ? 1 : 0 }
     }
   }
+  if (cur) runs.push(cur)
+  // dense readings (10+) or series samples = workout-mode heart rate
+  const kept = runs.filter(r => r.n >= 10 || r.spans > 0).map(r => ({ startMs: r.startMs, endMs: r.reach }))
   const merged = []
-  for (const r of runs) {
+  for (const r of kept) {
     const last = merged[merged.length - 1]
     if (last && r.startMs - last.endMs <= MERGE_GAP_S * 1000) last.endMs = r.endMs
     else merged.push({ ...r })

@@ -41,9 +41,10 @@ const icon = type => {
 }
 const when = iso => new Date(iso).toLocaleString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kuala_Lumpur' })
 const clock = ms => new Date(ms).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Kuala_Lumpur' })
+const myDay = iso => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' })
 const dur = m => m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m} min`
 
-export function SessionsCard({ sessions = [] }) {
+export function SessionsCard({ sessions = [], hrDiag = null }) {
   const [labels, setLabels] = useState(loadLabels)
   const [open, setOpen] = useState(null)
   const [tagging, setTagging] = useState(null)
@@ -78,6 +79,14 @@ export function SessionsCard({ sessions = [] }) {
           <li><b style={{ color: '#fff' }}>iPhone Sync:</b> add a <b style={{ color: '#fff' }}>Heart Rate</b> block to your shortcut (<a href="/shortcut.html#heart-rate" style={{ color: G }}>how</a>). VitaIQ finds recorded workouts from the dense heart-rate readings your watch takes during them.</li>
           <li><b style={{ color: '#fff' }}>CSV ZIP:</b> tick <b style={{ color: '#fff' }}>Workouts</b> and <b style={{ color: '#fff' }}>Heart Rate</b> in Simple Health Export CSV. Sessions then arrive already named (e.g. Tennis).</li>
         </ul>
+        {hrDiag && (
+          <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(255,214,10,0.07)', border: '1px solid rgba(255,214,10,0.25)', fontSize: 11, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+            <b style={{ color: '#FFD60A' }}>Last sync's heart rate:</b> {hrDiag.raw} readings received, {hrDiag.parsed} with a readable time
+            {hrDiag.first && <> ({myDay(hrDiag.first)} → {myDay(hrDiag.last)})</>} · typical gap {hrDiag.medianGapS ?? '–'}s · {hrDiag.shortGaps} gaps ≤60s · {hrDiag.withSpan} spans
+            {hrDiag.parsed === 0 && hrDiag.sampleStart && <> · time looks like “{String(hrDiag.sampleStart).slice(0, 40)}”: set the Start Date bubble to ISO 8601 with time</>}
+            <div style={{ color: MUTED, marginTop: 4 }}>No session was found in these readings. Screenshot this box for the Engineer.</div>
+          </div>
+        )}
       </Card>
     )
   }

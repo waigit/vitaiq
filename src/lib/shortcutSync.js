@@ -184,6 +184,6 @@ export function summarizeSync(data, counts) {
   if (counts.OxygenSaturation) parts.push('SpO2')
   if (counts.ActiveEnergyBurned) parts.push('Active energy')
   if (counts.WorkoutActivityType) parts.push(`Workouts ${counts.WorkoutActivityType}`)
-  if (counts.HeartRate) parts.push(`Heart rate${data.sessions?.length ? ` · ${data.sessions.length} session${data.sessions.length === 1 ? '' : 's'}` : ''}`)
+  if (counts.HeartRate) parts.push(`Heart rate ${counts.HeartRate}${data.sessions?.length ? ` · ${data.sessions.length} session${data.sessions.length === 1 ? '' : 's'}` : ''}`)
   return parts.join(' · ')
 }
