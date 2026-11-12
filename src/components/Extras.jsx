@@ -196,6 +196,29 @@ export function InstallHint() {
 // The period is chosen in the shortcut's own "How many days?" prompt, so the card just opens it.
 export function SyncFromIPhone({ compact = false }) {
   const ios = isAppleMobile()
+  const [info, setInfo] = useState(false)
+  const hi = { color: 'rgba(255,255,255,0.75)' }
+  // Compact: one row of buttons; the how-to sits behind the ⓘ button
+  if (compact) {
+    const b = primary => ({ flex: 1, minWidth: 0, display: 'block', textAlign: 'center', background: primary ? G : 'transparent', color: primary ? '#000' : G, border: primary ? '1px solid ' + G : '1px solid rgba(0,255,136,0.5)', borderRadius: 12, padding: '11px 8px', fontWeight: 800, fontSize: 13, cursor: 'pointer', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' })
+    return (
+      <div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'stretch' }}>
+          {ios
+            ? <><a href={shortcutRunUrl()} style={b(true)}>📲 Sync from iPhone</a><button onClick={openScanner} style={b(false)}>💻 Send to computer</button></>
+            : <button onClick={openPairing} style={b(true)}>📷 Bring data from my iPhone</button>}
+          <button onClick={() => setInfo(v => !v)} aria-label="How syncing works" aria-expanded={info} style={{ flexShrink: 0, width: 42, background: info ? 'rgba(0,255,136,0.12)' : 'rgba(255,255,255,0.06)', color: info ? G : 'rgba(255,255,255,0.6)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>?</button>
+        </div>
+        {info && <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.65, marginTop: 8, padding: '10px 12px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12 }}>
+          {ios ? <>
+            <div><b style={hi}>Sync from iPhone</b> pulls your latest Apple Health data in. When it asks <b style={hi}>How many days?</b> type <b style={hi}>7</b> for a quick top-up, <b style={hi}>30</b> (recommended) or <b style={hi}>90–180</b> for longer history. Workout heart rate always covers the last 7 days, so sync weekly.</div>
+            <div style={{ marginTop: 6 }}><b style={hi}>Send to computer</b>: open vitalstats.netlify.app on your computer, tap <b style={hi}>View your iPhone data here</b>, then scan its QR code from here.</div>
+            <div style={{ marginTop: 6 }}>First time? {SHORTCUT_INSTALL_URL ? <><a href={SHORTCUT_INSTALL_URL} target="_blank" rel="noopener" style={{ color: G, fontWeight: 700 }}>Get the free “{SHORTCUT_NAME}” shortcut</a> (one tap) · <a href="/shortcut.html" style={{ color: G }}>guide</a></> : <a href="/shortcut.html" style={{ color: G, fontWeight: 700 }}>Set up the free “{SHORTCUT_NAME}” shortcut</a>}.</div>
+          </> : <>Shows a QR code. In VitaIQ on your iPhone tap <b style={hi}>💻 Send to computer</b> and scan it — your latest synced data opens on this screen, end-to-end encrypted. New to syncing? <a href="/shortcut.html" style={{ color: G, fontWeight: 700 }}>Setup guide</a>.</>}
+        </div>}
+      </div>
+    )
+  }
   return (
     <Card style={compact ? { padding: 16 } : {}}>
       <Label>📲 Sync from iPhone</Label>

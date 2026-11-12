@@ -31,19 +31,53 @@
   th { color:#fff; font-size:12px; }
   .tag { font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--g); }
   .note { font-size:12.5px; color:var(--muted); }
+  .btn { display:block; text-align:center; background:var(--g); color:#000; font-weight:800; font-size:15px; text-decoration:none; border-radius:12px; padding:14px 16px; margin:12px 0 8px; }
+  h3 { font-size:14px; font-weight:800; margin:20px 0 8px; }
+  details { margin:24px 0 0; border:1px solid var(--line); border-radius:14px; padding:12px 14px; }
+  summary { cursor:pointer; font-size:13.5px; font-weight:700; color:var(--sub); }
 </style>
 </head>
 <body>
 <main>
   <div class="top"><a href="/">← Back to VitaIQ</a></div>
-  <div class="tag">One-time setup · about 5–10 minutes</div>
+  <div class="tag">One-time setup · about 1 minute</div>
   <h1>Sync from iPhone <span>without an export app</span></h1>
-  <p>Build the free <b>VitaIQ Sync</b> shortcut once. After that, tap <b>Sync from iPhone</b> on VitaIQ's front page (or run the shortcut), type how many days, and your dashboard updates in a few seconds.</p>
+  <p>Add the free <b>VitaIQ Sync</b> shortcut once. After that, tap <b>Sync from iPhone</b> in VitaIQ, type how many days, and your dashboard updates in a few seconds.</p>
+
+  <h2>1 · Get the shortcut</h2>
+  <p>On your iPhone, tap the button, then <b>Add Shortcut</b>. Keep its name <code>VitaIQ Sync</code>.</p>
+  <a class="btn" href="https://www.icloud.com/shortcuts/7b865f61bbe64f18ba6bcb63b15b5c66">＋ Get the VitaIQ Sync shortcut</a>
+  <p class="note">Opens Apple's Shortcuts app. Link not opening? <a href="/VitaIQ%20Sync.shortcut" download="VitaIQ Sync.shortcut">Download the shortcut file</a>, then open it from Files and tap Add Shortcut.</p>
+
+  <h2>2 · Run your first sync</h2>
+  <ol>
+    <li>Back in VitaIQ, tap <b>Sync from iPhone</b> (front page, or the top of the Today tab).</li>
+    <li>When it asks <b>How many days?</b> type <code>30</code>.</li>
+    <li>iOS asks to allow Health access for each type — tap <b>Allow</b> each time. When asked whether the shortcut may open <i>vitalstats.netlify.app</i>, choose <b>Always Allow</b>. This only happens the first time.</li>
+    <li>Safari opens VitaIQ and shows <b>“Synced … from iPhone”</b> with what arrived (e.g. <i>HRV 30 days · Sleep 29 nights · Steps 30 days</i>).</li>
+  </ol>
+  <p class="note">If something's missing or you see an error, send a screenshot to Wai Git's Engineer.</p>
 
   <div class="card g">
     <p><b>🔒 Private:</b> the shortcut reads Apple Health on your iPhone and opens VitaIQ with the data after a <code>#</code> in the link. Browsers never send that part to any server — the data is processed in Safari on your phone, same as a ZIP upload.</p>
   </div>
 
+  <h2>Using it</h2>
+  <ul>
+    <li><b>From VitaIQ:</b> tap <b>Sync from iPhone</b> on the front page (or at the top of the Today tab), then type the number of days when the shortcut asks (7 quick · 30 recommended · 90–180 longer history).</li>
+    <li><b>From anywhere:</b> run <b>VitaIQ Sync</b> (Home Screen icon, widget, Siri, or Apple Watch) and type the number of days.</li>
+    <li>Every sync is added to the history saved in Safari, so after one longer sync, a quick 7- or 30-day sync keeps trends up to date. 30 days keeps your baselines most accurate.</li>
+    <li><b>On a computer:</b> open vitalstats.netlify.app there, tap <b>View your iPhone data here</b>, then tap <b>💻 Send to computer</b> in VitaIQ on your iPhone and scan the QR code.</li>
+    <li>The CSV ZIP upload still works as before.</li>
+  </ul>
+
+  <div class="card">
+    <p><b>Home Screen VitaIQ icon?</b> On iPhone, a website added to the Home Screen keeps its own separate storage from Safari. The shortcut always opens Safari, so synced data lands in Safari's VitaIQ. Use VitaIQ in Safari for synced data (you can add the <b>VitaIQ Sync</b> shortcut itself to the Home Screen instead).</p>
+  </div>
+
+  <details>
+    <summary>Prefer to build the shortcut yourself? (advanced, 5–10 minutes)</summary>
+    <p class="note" style="margin-top:10px">You don't need this if you added the ready-made shortcut above. These are the same steps it contains.</p>
   <div class="card">
     <p><b>The whole shortcut at a glance</b> — no loops, no settings to hunt for:</p>
     <ol>
@@ -54,13 +88,13 @@
     </ol>
   </div>
 
-  <h2>1 · Start the shortcut</h2>
+  <h3>A · Start the shortcut</h3>
   <ol>
     <li>Open the <b>Shortcuts</b> app → tap <b>+</b>. Tap the name at the top → <b>Rename</b> → type exactly <code>VitaIQ Sync</code>.</li>
     <li>Add <span class="a">Ask for Input</span>: Input Type <b>Number</b>, prompt <code>How many days?</code>.</li>
   </ol>
 
-  <h2>2 · Find each metric (2 actions each)</h2>
+  <h3>B · Find each metric (2 actions each)</h3>
   <p>Add <span class="a">Find Health Samples</span> and set it up once:</p>
   <div class="card">
     <ul>
@@ -86,7 +120,7 @@
   </table>
   <p class="note">Heart Rate is fixed at 7 days because a month of workout heart rate is too much for Shortcuts.</p>
 
-  <h2>3 · One Text, then open VitaIQ</h2>
+  <h3>C · One Text, then open VitaIQ</h3>
   <ol>
     <li>Add a <span class="a">Text</span> action at the end. Type the lines below. Every <b>[…]</b> is a variable: tap <b>Select Variable</b> → tap that metric's <b>Find Health Samples</b> action → tap the new token → choose the detail:
       <ul>
@@ -144,27 +178,10 @@
 
   <div class="card">
     <p class="note"><b>About sessions:</b> Shortcuts can't read workouts, but during a recorded workout your Apple Watch measures heart rate every few seconds. VitaIQ finds those stretches and shows each one under <b>Effort → Sessions</b> with its heart-rate curve, average/max and time in zones — tap one to tag it (e.g. Tennis). The share card counts them as <b>Workout days</b>; with none found it shows <b>Active days</b> (30+ exercise minutes).</p>
-    <p class="note"><b>Already built the older version</b> (with Repeat loops or Share Sheet input)? It still works — no need to rebuild.</p>
+    <p class="note"><b>Already built your own version</b> (with or without Repeat loops)? It still works — no need to replace it.</p>
   </div>
 
-  <h2>4 · First run</h2>
-  <ul>
-    <li>Run it from the Shortcuts app and enter <code>7</code>. iOS asks to allow Health access for each type — tap <b>Allow</b>.</li>
-    <li>When asked whether the shortcut may open <i>vitalstats.netlify.app</i>, choose <b>Always Allow</b>.</li>
-    <li>Safari opens VitaIQ and shows <b>“Synced … from iPhone”</b> with what arrived (e.g. <i>HRV 7 days · Sleep 7 nights · Steps 7 days</i>). If something's missing or you see an error, send a screenshot to Wai Git's Engineer.</li>
-  </ul>
-
-  <h2>Using it</h2>
-  <ul>
-    <li><b>From VitaIQ:</b> tap <b>Sync from iPhone</b> on the front page (or at the top of the Today tab), then type the number of days when the shortcut asks (7 quick · 30 recommended · 90–180 longer history).</li>
-    <li><b>From anywhere:</b> run <b>VitaIQ Sync</b> (Home Screen icon, widget, Siri, or Apple Watch) and type the number of days.</li>
-    <li>Every sync is added to the history saved in Safari, so after one longer sync, a quick 7- or 30-day sync keeps trends up to date. 30 days keeps your baselines most accurate.</li>
-    <li>The CSV ZIP upload still works as before.</li>
-  </ul>
-
-  <div class="card">
-    <p><b>Home Screen VitaIQ icon?</b> On iPhone, a website added to the Home Screen keeps its own separate storage from Safari. The shortcut always opens Safari, so synced data lands in Safari's VitaIQ. Use VitaIQ in Safari for synced data (you can add the <b>VitaIQ Sync</b> shortcut itself to the Home Screen instead).</p>
-  </div>
+  </details>
   <p class="note" style="margin-top:20px">Health app limits: iOS keeps Health data locked while the iPhone is locked, so run the sync with the phone unlocked. Blood-oxygen dips are based on daily averages when synced this way.</p>
 </main>
 </body>

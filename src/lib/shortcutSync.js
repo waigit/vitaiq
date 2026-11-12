@@ -13,9 +13,10 @@ import { ungzip } from 'pako'
 import { analyzeRows, readZipText } from './parseHealth.js'
 
 export const SHORTCUT_NAME = 'VitaIQ Sync'
-// Ready-made shortcut shared by Wai Git (an iCloud link is a snapshot: update it when the shortcut changes)
-// Empty = no one-tap install offered (the first shared link held an old, broken version)
-export const SHORTCUT_INSTALL_URL = ''
+// Ready-made shortcut shared by Wai Git. An iCloud link is a snapshot: share a new link and update
+// it here (and public/shortcut.html + public/VitaIQ Sync.shortcut) whenever the shortcut changes.
+// Checked 12 Nov 2026: Sleep and Heart Rate are separate Finds, and the link carries the data.
+export const SHORTCUT_INSTALL_URL = 'https://www.icloud.com/shortcuts/7b865f61bbe64f18ba6bcb63b15b5c66'
 export const shortcutRunUrl = days =>
   `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT_NAME)}${days ? `&input=text&text=${days}` : ''}`
 

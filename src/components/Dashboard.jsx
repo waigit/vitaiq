@@ -376,6 +376,24 @@ function ChartBox({height,children}){
     </div>
   )
 }
+const wideScreen = typeof window!=='undefined' && window.innerWidth>=900
+// Collapsible section: keeps the Today tab to one screen; details open on tap
+function Fold({icon,title,sub,defaultOpen=false,children}){
+  const [open,setOpen]=useState(defaultOpen)
+  return(
+    <div style={{display:'grid',gap:8}}>
+      <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} style={{display:'flex',alignItems:'center',gap:10,width:'100%',textAlign:'left',background:'rgba(18,18,26,0.9)',border:`1px solid ${open?'rgba(0,255,136,0.3)':'rgba(255,255,255,0.1)'}`,borderRadius:12,padding:'11px 14px',cursor:'pointer',color:'#fff',fontFamily:'inherit'}}>
+        <span style={{fontSize:17}}>{icon}</span>
+        <span style={{flex:1,minWidth:0}}>
+          <span style={{display:'block',fontSize:13,fontWeight:800}}>{title}</span>
+          <span style={{display:'block',fontSize:10.5,color:'rgba(255,255,255,0.45)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{sub}</span>
+        </span>
+        <span style={{fontSize:13,color:'rgba(255,255,255,0.5)',transform:open?'rotate(90deg)':'none',transition:'transform .15s'}}>›</span>
+      </button>
+      {open&&children}
+    </div>
+  )
+}
 function Label({children}){
   return <div style={{fontSize:10,color:'rgba(255,255,255,0.55)',textTransform:'uppercase',letterSpacing:2,marginBottom:12,fontWeight:700}}>{children}</div>
 }
@@ -1313,40 +1331,38 @@ For every other kind of question — workouts, sleep, readiness, general advice,
           <span style={{fontSize:10,color:'rgba(255,255,255,0.35)',whiteSpace:'nowrap',marginLeft:'auto'}}>Free · All features</span>
         </div>
       </div>
-      <div style={{position:'relative',zIndex:5,display:'flex',gap:6,padding:'10px 16px',overflowX:'auto',scrollbarWidth:'none',background:'rgba(10,10,15,0.5)',backdropFilter:'blur(8px)',flexShrink:0}}>
+      <div style={{position:'relative',zIndex:5,padding:'8px 12px',background:'rgba(10,10,15,0.5)',backdropFilter:'blur(8px)',flexShrink:0}}>
+        <div className="viq-tabs">
         {TABS.map(t=>{
           const active=tab===t.id
           return(
-            <button key={t.id} onClick={()=>handleTabClick(t.id)} style={{
-              padding:'8px 16px',borderRadius:99,
-              border:`1px solid ${active?'#00FF88':'rgba(255,255,255,0.15)'}`,
-              cursor:'pointer',fontSize:11,fontWeight:700,whiteSpace:'nowrap',
-              display:'flex',alignItems:'center',gap:5,transition:'all 0.15s',
-              background:active?'#00FF88':'rgba(255,255,255,0.08)',
-              color:active?'#000000':'rgba(255,255,255,0.85)',
-              boxShadow:active?'0 0 16px rgba(0,255,136,0.5)':'none',
-              letterSpacing:0.2,flexShrink:0,
+            <button key={t.id} className="viq-tab" onClick={()=>handleTabClick(t.id)} aria-current={active?'page':undefined} style={{
+              border:`1px solid ${active?'#00FF88':'rgba(255,255,255,0.12)'}`,
+              background:active?'#00FF88':'rgba(255,255,255,0.06)',
+              color:active?'#000000':'rgba(255,255,255,0.8)',
+              boxShadow:active?'0 0 14px rgba(0,255,136,0.4)':'none',
             }}>
-              <span>{t.icon}</span>
-              <span>{dl.tabs[t.labelKey]||t.labelKey}</span>
+              <span className="viq-tab-i">{t.icon}</span>
+              <span className="viq-tab-l">{dl.tabs[t.labelKey]||t.labelKey}</span>
             </button>
           )
         })}
+        </div>
       </div>
-      <div style={{position:'relative',zIndex:5,maxWidth:960,margin:'0 auto',padding:'16px 14px',minHeight:'calc(100vh - 140px)'}}>
+      <div style={{position:'relative',zIndex:5,maxWidth:960,margin:'0 auto',padding:'12px 14px',minHeight:'calc(100vh - 140px)'}}>
 
       {!hasHealthData ? (
         ['today','readiness','sleep','effort','health','behaviors','longevity','bp'].includes(tab) &&
           <NoHealthDataGate onBack={onBack}/>
       ) : (<>
         {tab==='today'&&(
-          <div style={{display:'grid',gap:12}}>
+          <div className="viq-today">
+            <div>
             {!isDemo&&<SyncFromIPhone compact/>}
-            <InstallHint/>
-            <div style={{background:`linear-gradient(135deg,${rCol(todayReadiness)}0d 0%,rgba(10,10,15,0.6) 100%)`,border:`1px solid ${rCol(todayReadiness)}33`,borderRadius:14,padding:16}}>
+            <div style={{background:`linear-gradient(135deg,${rCol(todayReadiness)}0d 0%,rgba(10,10,15,0.6) 100%)`,border:`1px solid ${rCol(todayReadiness)}33`,borderRadius:14,padding:'12px 14px'}}>
               <div style={{display:'flex',alignItems:'center',gap:14}}>
                 <div style={{position:'relative',flexShrink:0}}>
-                  <svg width={90} height={90} viewBox="0 0 90 90">
+                  <svg width={78} height={78} viewBox="0 0 90 90">
                     <circle cx={45} cy={45} r={34} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth={8}/>
                     <circle cx={45} cy={45} r={34} fill="none" stroke={rCol(todayReadiness)} strokeWidth={8}
                       strokeDasharray={`${(todayReadiness/100*213.6).toFixed(0)} 213.6`}
@@ -1370,34 +1386,22 @@ For every other kind of question — workouts, sleep, readiness, general advice,
                 </div>
               </div>
             </div>
-
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:6}}>
               {[
-                ['HRV',`${fmt(l.hrv)}ms`,l.hrv>=(l.hrvBaseline||35)?T.teal:T.yellow,l.hrv>=(l.hrvBaseline||35)?'↑ above avg':'↓ below avg'],
-                ['Resting HR',`${fmt(l.rhr)} bpm`,l.rhr<=65?T.teal:l.rhr<=75?T.yellow:T.red,l.rhr<=65?'↓ trending down':'avg range'],
-                ['Sleep',`${sleepNights.length?sleepNights[sleepNights.length-1].score:'-'}%`,T.blue,sleepNights.length?`${sleepNights[sleepNights.length-1].total}hrs last night`:'no data'],
-              ].map(([label,val,color,sub])=>(
-                <div key={label} style={{background:'rgba(255,255,255,0.04)',borderRadius:10,padding:10,textAlign:'center',border:'1px solid rgba(255,255,255,0.08)'}}>
-                  <div style={{fontSize:9,color:'rgba(255,255,255,0.4)',textTransform:'uppercase',letterSpacing:1,marginBottom:4}}>{label}</div>
-                  <div style={{fontSize:16,fontWeight:900,color}}>{val}</div>
-                  <div style={{fontSize:9,color:'rgba(255,255,255,0.4)',marginTop:2}}>{sub}</div>
-                </div>
+                ['HRV',fmt(l.hrv),'ms',l.hrv>=(l.hrvBaseline||35)?T.teal:T.yellow,l.hrv>=(l.hrvBaseline||35)?'↑ above avg':'↓ below avg','readiness'],
+                ['Resting HR',fmt(l.rhr),'bpm',l.rhr<=65?T.teal:l.rhr<=75?T.yellow:T.red,l.rhr<=65?'low · good':'avg range','readiness'],
+                ['Sleep',sleepNights.length?sleepNights[sleepNights.length-1].score:'–','%',T.blue,sleepNights.length?`${sleepNights[sleepNights.length-1].total}h last night`:'no data','sleep'],
+                ['Effort',l.strain!=null?fmt(l.strain,1):'–','/21',T.yellow,l.strain!=null?'strain':'no data','effort'],
+              ].map(([label,val,unit,color,sub,tabId])=>(
+                <button key={label} onClick={()=>handleTabClick(tabId)} style={{background:'rgba(255,255,255,0.04)',borderRadius:12,padding:'9px 4px',textAlign:'center',border:'1px solid rgba(255,255,255,0.08)',cursor:'pointer',color:'inherit',fontFamily:'inherit',minWidth:0}}>
+                  <div style={{fontSize:8.5,color:'rgba(255,255,255,0.45)',textTransform:'uppercase',letterSpacing:0.8,marginBottom:4,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{label}</div>
+                  <div style={{fontSize:17,fontWeight:900,color,whiteSpace:'nowrap'}}>{val}<span style={{fontSize:9,fontWeight:700,opacity:0.75}}>{unit}</span></div>
+                  <div style={{fontSize:8.5,color:'rgba(255,255,255,0.4)',marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{sub} ›</div>
+                </button>
               ))}
             </div>
-
-            <Card style={{borderLeft:'3px solid #00FF88'}}>
-              <div style={{fontSize:9,fontWeight:700,color:'#00FF88',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>✨ {dl.morning||"Today's brief"}</div>
-              <div style={{fontSize:12,color:'rgba(255,255,255,0.75)',lineHeight:1.7}}>
-                {isDemo
-                  ? 'Demo data — upload your Apple Watch ZIP to see your personalised brief.'
-                  : <><b style={{color:'#fff'}}>Readiness {todayReadiness}%</b> — {todayReadiness>=67?'great recovery.':todayReadiness>=33?'moderate recovery.':'low recovery. Rest today.'}{l.hrv&&l.hrvBaseline&&<> HRV ({fmt(l.hrv)}ms) vs your {fmt(l.hrvBaseline)}ms baseline.</>}{sleepPlan&&<> Tonight aim for <b style={{color:'#fff'}}>{sleepPlan.tonight}h</b>{sleepPlan.bedtime?<> — in bed by {sleepPlan.bedtime}</>:''}.</>}<br/><b style={{color:'#fff'}}>Data:</b> {durLabel} ({d.meta.startDate} → {d.meta.endDate}).</>
-                }
-              </div>
-            </Card>
-            {!isDemo&&<HistoryNote meta={d.meta} onClear={onClearHistory}/>}
-
             {(d.alerts||[]).map((a,i)=>(
-              <Card key={i} style={{borderLeft:'4px solid #FFD60A'}}>
+              <Card key={i} style={{borderLeft:'4px solid #FFD60A',padding:'12px 14px'}}>
                 <div style={{display:'flex',gap:10,alignItems:'flex-start'}}>
                   <span style={{fontSize:20}}>⚠️</span>
                   <div>
@@ -1407,28 +1411,24 @@ For every other kind of question — workouts, sleep, readiness, general advice,
                 </div>
               </Card>
             ))}
-
-            <Card>
-              <Label>Drill down</Label>
-              {[
-                [T.teal,'Readiness',`${todayReadiness}%`,'readiness'],
-                [T.blue,'Sleep',sleepNights.length?`${sleepNights[sleepNights.length-1].score}%`:'-','sleep'],
-                [T.yellow,'Effort',l.strain!=null?`${fmt(l.strain,1)}/21`:'-','effort'],
-                [(d.alerts||[]).length?T.yellow:'rgba(255,255,255,0.5)','Vitals',(d.alerts||[]).length?`${d.alerts.length} alert${d.alerts.length>1?'s':''}`:'No alerts','health'],
-              ].map(([color,label,val,tabId])=>(
-                <div key={label} onClick={()=>handleTabClick(tabId)} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:'rgba(255,255,255,0.75)'}}>
-                    <div style={{width:6,height:6,borderRadius:'50%',background:color}}/>
-                    {label}
-                  </div>
-                  <div style={{fontSize:12,fontWeight:700,color}}>{val} ›</div>
-                </div>
-              ))}
+            <Card style={{borderLeft:'3px solid #00FF88',padding:'12px 14px'}}>
+              <div style={{fontSize:9,fontWeight:700,color:'#00FF88',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>✨ {dl.morning||"Today's brief"}</div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,0.75)',lineHeight:1.7}}>
+                {isDemo
+                  ? 'Demo data — upload your Apple Watch ZIP to see your personalised brief.'
+                  : <><b style={{color:'#fff'}}>Readiness {todayReadiness}%</b> — {todayReadiness>=67?'great recovery.':todayReadiness>=33?'moderate recovery.':'low recovery. Rest today.'}{l.hrv&&l.hrvBaseline&&<> HRV ({fmt(l.hrv)}ms) vs your {fmt(l.hrvBaseline)}ms baseline.</>}{sleepPlan&&<> Tonight aim for <b style={{color:'#fff'}}>{sleepPlan.tonight}h</b>{sleepPlan.bedtime?<> — in bed by {sleepPlan.bedtime}</>:''}.</>}<br/><b style={{color:'#fff'}}>Data:</b> {durLabel} ({d.meta.startDate} → {d.meta.endDate}).</>
+                }
+              </div>
             </Card>
-            <StreaksCard streaks={streaks} asOf={d.meta.endDate}/>
-            <CheckInCard hrvDaily={d.daily?.hrv}/>
-            <ShareWeekCard stats={weekStats}/>
+            </div>
+            <div>
+            {streaks&&(streaks.sleep||streaks.steps||streaks.activeWeeks||streaks.meals)&&<Fold icon="🔥" title="Streaks" sub="Sleep · steps · workouts · meals" defaultOpen={wideScreen}><StreaksCard streaks={streaks} asOf={d.meta.endDate}/></Fold>}
+            <Fold icon="✅" title="Daily check-in" sub="10 seconds · shows what moves your HRV"><CheckInCard hrvDaily={d.daily?.hrv}/></Fold>
+            {weekStats&&<Fold icon="📤" title="Share my week" sub="Story image for Instagram / WhatsApp"><ShareWeekCard stats={weekStats}/></Fold>}
+            <InstallHint/>
             <AffiliateInlineCard tab='today'/>
+            {!isDemo&&<HistoryNote meta={d.meta} onClear={onClearHistory}/>}
+            </div>
           </div>
         )}
         {tab==='readiness'&&(

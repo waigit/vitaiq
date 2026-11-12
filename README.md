@@ -39,7 +39,8 @@ src/components/Admin.jsx     affiliate link admin
 src/lib/parseHealth.js       reads the Simple Health Export CSV zip in the browser
 src/lib/supabase.js          Supabase (users, uploads, affiliates, nutrition logs, meal photos) — loaded lazily
 src/lib/shortcutSync.js      "Sync from iPhone": reads #sync=... data sent by the VitaIQ Sync Apple Shortcut
-public/shortcut.html         setup guide for the VitaIQ Sync shortcut
+public/shortcut.html         setup guide: one-tap install of the VitaIQ Sync shortcut (iCloud link in src/lib/shortcutSync.js)
+public/VitaIQ Sync.shortcut  the same shortcut as a file (fallback download) — replace both when the shortcut changes
 src/lib/handoff.js           "View on a computer": QR code → iPhone sends its data, end-to-end encrypted (AES-GCM)
 netlify/functions/handoff.js      one-time relay for that ciphertext (Netlify Blobs store vitaiq-handoff, 10-min expiry, deleted on pickup)
 netlify/functions/chat.js         AI Coach  → OpenRouter qwen/qwen3-14b

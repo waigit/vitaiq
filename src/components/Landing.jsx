@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { getAffiliatesCached, weightedAffiliateRotation, trackUpload } from '../lib/supabase'
 import { parseHealthZip } from '../lib/parseHealth'
-import { shortcutRunUrl, isAppleMobile, SHORTCUT_NAME } from '../lib/shortcutSync'
+import { shortcutRunUrl, isAppleMobile, SHORTCUT_NAME, SHORTCUT_INSTALL_URL } from '../lib/shortcutSync'
 import { openPairing } from './Extras'
 
 const SIMPLE_HEALTH_URL = "https://apps.apple.com/us/app/simple-health-export-csv/id1535380115",
@@ -474,7 +474,7 @@ function SyncHero() {
       fontWeight: 800,
       fontSize: 14,
       textDecoration: "none"
-    }}>{ios ? "Sync from iPhone" : "Set up iPhone sync"}</a>{!ios && <button onClick={openPairing} style={{ display: "block", width: "100%", marginTop: 8, textAlign: "center", background: "transparent", color: "#00FF88", border: "1px solid rgba(0,255,136,0.5)", borderRadius: 10, padding: "10px 14px", fontWeight: 800, fontSize: 13.5, cursor: "pointer" }}>📷 Already synced? View your iPhone data here</button>}<div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", textAlign: "center", marginTop: 8, lineHeight: 1.5 }}>{ios ? <>First time? <a href="/shortcut.html" style={{ color: "#00FF88", fontWeight: 700, textDecoration: "none" }}>Make the free “{SHORTCUT_NAME}” shortcut →</a> (one time, ~5 min)</> : <>Shows a QR code — tap <b style={{ color: "rgba(255,255,255,0.75)" }}>💻 Send to computer</b> in VitaIQ on your iPhone and scan it. End-to-end encrypted.</>}</div></div>;
+    }}>{ios ? "Sync from iPhone" : "Set up iPhone sync"}</a>{!ios && <button onClick={openPairing} style={{ display: "block", width: "100%", marginTop: 8, textAlign: "center", background: "transparent", color: "#00FF88", border: "1px solid rgba(0,255,136,0.5)", borderRadius: 10, padding: "10px 14px", fontWeight: 800, fontSize: 13.5, cursor: "pointer" }}>📷 Already synced? View your iPhone data here</button>}<div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", textAlign: "center", marginTop: 8, lineHeight: 1.5 }}>{ios ? <>First time? <a href={SHORTCUT_INSTALL_URL || "/shortcut.html"} style={{ color: "#00FF88", fontWeight: 700, textDecoration: "none" }}>Get the free “{SHORTCUT_NAME}” shortcut →</a> (one tap) · <a href="/shortcut.html" style={{ color: "rgba(255,255,255,0.6)" }}>guide</a></> : <>Shows a QR code — tap <b style={{ color: "rgba(255,255,255,0.75)" }}>💻 Send to computer</b> in VitaIQ on your iPhone and scan it. End-to-end encrypted.</>}</div></div>;
 }
 
 function FeatureShowcase() {
