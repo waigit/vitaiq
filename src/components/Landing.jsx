@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { getAffiliatesCached, weightedAffiliateRotation, trackUpload } from '../lib/supabase'
 import { parseHealthZip } from '../lib/parseHealth'
 import { shortcutRunUrl, isAppleMobile, SHORTCUT_NAME } from '../lib/shortcutSync'
+import { openPairing } from './Extras'
 
 const SIMPLE_HEALTH_URL = "https://apps.apple.com/us/app/simple-health-export-csv/id1535380115",
   LANGS = {
@@ -473,7 +474,7 @@ function SyncHero() {
       fontWeight: 800,
       fontSize: 14,
       textDecoration: "none"
-    }}>{ios ? "Sync from iPhone" : "Set up iPhone sync"}</a><div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", textAlign: "center", marginTop: 8, lineHeight: 1.5 }}>{ios ? <>First time? <a href="/shortcut.html" style={{ color: "#00FF88", fontWeight: 700, textDecoration: "none" }}>Make the free “{SHORTCUT_NAME}” shortcut →</a> (one time, ~5 min)</> : <>Uses a free Apple Shortcut on your iPhone · one-time setup, ~5 min</>}</div></div>;
+    }}>{ios ? "Sync from iPhone" : "Set up iPhone sync"}</a>{!ios && <button onClick={openPairing} style={{ display: "block", width: "100%", marginTop: 8, textAlign: "center", background: "transparent", color: "#00FF88", border: "1px solid rgba(0,255,136,0.5)", borderRadius: 10, padding: "10px 14px", fontWeight: 800, fontSize: 13.5, cursor: "pointer" }}>📷 Already synced? View your iPhone data here</button>}<div style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", textAlign: "center", marginTop: 8, lineHeight: 1.5 }}>{ios ? <>First time? <a href="/shortcut.html" style={{ color: "#00FF88", fontWeight: 700, textDecoration: "none" }}>Make the free “{SHORTCUT_NAME}” shortcut →</a> (one time, ~5 min)</> : <>Scan a QR code with your iPhone camera — your synced data opens on this screen, end-to-end encrypted.</>}</div></div>;
 }
 
 function FeatureShowcase() {

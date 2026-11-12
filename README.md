@@ -40,6 +40,8 @@ src/lib/parseHealth.js       reads the Simple Health Export CSV zip in the brows
 src/lib/supabase.js          Supabase (users, uploads, affiliates, nutrition logs, meal photos) — loaded lazily
 src/lib/shortcutSync.js      "Sync from iPhone": reads #sync=... data sent by the VitaIQ Sync Apple Shortcut
 public/shortcut.html         setup guide for the VitaIQ Sync shortcut
+src/lib/handoff.js           "View on a computer": QR code → iPhone sends its data, end-to-end encrypted (AES-GCM)
+netlify/functions/handoff.js      one-time relay for that ciphertext (Netlify Blobs store vitaiq-handoff, 10-min expiry, deleted on pickup)
 netlify/functions/chat.js         AI Coach  → OpenRouter qwen/qwen3-14b
 netlify/functions/analyze-food.js food photo → OpenRouter google/gemini-2.5-flash-lite
 supabase/*.sql               table definitions (already applied — keep for reference)

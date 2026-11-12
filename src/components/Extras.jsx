@@ -204,10 +204,14 @@ export function SyncFromIPhone({ compact = false }) {
       </div>
       {ios
         ? <a href={shortcutRunUrl()} style={{ display: 'block', textAlign: 'center', background: G, color: '#000', borderRadius: 12, padding: '12px 16px', fontWeight: 800, fontSize: 14, textDecoration: 'none' }}>Sync from iPhone</a>
-        : <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textAlign: 'center', padding: '10px 0' }}>Open VitaIQ in Safari on your iPhone to sync.</div>}
+        : <><button onClick={openPairing} style={{ display: 'block', width: '100%', textAlign: 'center', background: G, color: '#000', border: 'none', borderRadius: 12, padding: '12px 16px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>📷 Bring data from my iPhone</button>
+          <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 8, lineHeight: 1.6 }}>Shows a QR code — scan it with your iPhone camera to see your latest synced data on this screen.</div></>}
       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 10, lineHeight: 1.6 }}>
         When the shortcut asks <b style={{ color: 'rgba(255,255,255,0.75)' }}>How many days?</b> type: <b style={{ color: 'rgba(255,255,255,0.75)' }}>7</b> quick top-up · <b style={{ color: 'rgba(255,255,255,0.75)' }}>30</b> recommended · <b style={{ color: 'rgba(255,255,255,0.75)' }}>90–180</b> longer history (can take a minute). Workout heart rate always covers the last 7 days, so sync weekly to keep every session.
       </div>
+      {ios && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 6, lineHeight: 1.6 }}>
+        💻 <b style={{ color: 'rgba(255,255,255,0.75)' }}>Bigger screen?</b> Open vitalstats.netlify.app on your computer, tap <b style={{ color: 'rgba(255,255,255,0.75)' }}>Bring data from my iPhone</b> and scan the QR code with your Camera.
+      </div>}
       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 6, lineHeight: 1.6 }}>
         {SHORTCUT_INSTALL_URL ? <>First time? <a href={SHORTCUT_INSTALL_URL} target="_blank" rel="noopener" style={{ color: G, fontWeight: 700 }}>Get the free “{SHORTCUT_NAME}” shortcut</a> (one tap, on your iPhone) · <a href="/shortcut.html" style={{ color: G }}>how it works</a>.</> : <>Needs the free “{SHORTCUT_NAME}” shortcut — <a href="/shortcut.html" style={{ color: G }}>setup guide</a>.</>}
       </div>
@@ -228,4 +232,126 @@ export function SyncToast({ status, onClose }) {
       {status.state !== 'busy' && <button onClick={onClose} aria-label="Dismiss" style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontSize: 18, cursor: 'pointer', padding: 0 }}>×</button>}
     </div>
   )
+}
+
+// ── View on a computer (QR handoff) ─────────────────────────────────────────
+// Computer shows a QR code → iPhone camera opens it → iPhone sends its data, end-to-end encrypted.
+export const openPairing = () => window.dispatchEvent(new Event('vitaiq:pair'))
+
+function Modal({ children, onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 400, background: 'rgba(18,18,26,0.98)', border: '1px solid rgba(0,255,136,0.25)', borderRadius: 18, padding: 20, boxShadow: '0 12px 48px rgba(0,0,0,0.7)', position: 'relative' }}>
+        <button onClick={onClose} aria-label="Close" style={{ position: 'absolute', top: 10, right: 12, background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontSize: 22, cursor: 'pointer' }}>×</button>
+        {children}
+      </div>
+    </div>
+  )
+}
+const btn = (primary = true) => ({ display: 'block', width: '100%', textAlign: 'center', background: primary ? G : 'transparent', color: primary ? '#000' : 'rgba(255,255,255,0.7)', border: primary ? 'none' : '1px solid rgba(255,255,255,0.18)', borderRadius: 12, padding: '12px 16px', fontWeight: 800, fontSize: 14, cursor: 'pointer', textDecoration: 'none' })
+const small = { fontSize: 11.5, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }
+
+function PairingModal({ onClose }) {
+  const [pair, setPair] = useState(null)
+  const [svg, setSvg] = useState('')
+  const [state, setState] = useState('waiting') // waiting | done | error | expired
+  const [err, setErr] = useState('')
+  const [left, setLeft] = useState(600)
+  const [n, setN] = useState(0) // bump for a new code
+  useEffect(() => {
+    let stop = false, timer
+    ;(async () => {
+      const [{ newPairing, pollOnce, applyPayload }, { default: qrcode }] = await Promise.all([import('../lib/handoff'), import('qrcode-generator')])
+      const p = newPairing(); if (stop) return
+      const qr = qrcode(0, 'M'); qr.addData(p.url); qr.make()
+      setPair(p); setSvg(qr.createSvgTag({ cellSize: 5, margin: 3, scalable: true })); setState('waiting'); setErr('')
+      const tick = async () => {
+        if (stop) return
+        const s = Math.max(0, Math.round((p.expiresAt - Date.now()) / 1000)); setLeft(s)
+        if (s <= 0) { setState('expired'); return }
+        try {
+          const payload = await pollOnce(p)
+          if (payload) {
+            applyPayload(payload); setState('done')
+            setTimeout(() => { history.replaceState(null, '', location.pathname); location.reload() }, 900)
+            return
+          }
+        } catch (e) { if (/expired/i.test(e.message)) { setState('expired'); return } setErr(e.message) }
+        timer = setTimeout(tick, 2000)
+      }
+      tick()
+    })().catch(e => { setState('error'); setErr(e.message || String(e)) })
+    return () => { stop = true; clearTimeout(timer) }
+  }, [n])
+  const mm = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`
+  return (
+    <Modal onClose={onClose}>
+      <Label>📷 View your iPhone data here</Label>
+      {state === 'done'
+        ? <div style={{ textAlign: 'center', padding: '24px 0' }}><div style={{ fontSize: 34 }}>✅</div><div style={{ fontWeight: 800, marginTop: 8 }}>Data received — opening your dashboard…</div></div>
+        : state === 'expired'
+          ? <div style={{ textAlign: 'center', padding: '16px 0' }}><div style={{ ...small, marginBottom: 14 }}>This code expired.</div><button onClick={() => setN(x => x + 1)} style={btn()}>Show a new code</button></div>
+          : <>
+            <div style={{ background: '#fff', borderRadius: 12, padding: 8, width: 220, height: 220, margin: '0 auto 14px' }} dangerouslySetInnerHTML={{ __html: svg }} />
+            <ol style={{ ...small, color: 'rgba(255,255,255,0.7)', paddingLeft: 18, margin: '0 0 10px' }}>
+              <li>On your iPhone, open the <b style={{ color: '#fff' }}>Camera</b> and point it at this code.</li>
+              <li>Tap the <b style={{ color: '#fff' }}>vitalstats.netlify.app</b> link — it opens VitaIQ in Safari.</li>
+              <li>Tap <b style={{ color: '#fff' }}>Send to computer</b>. Your dashboard appears here in a few seconds.</li>
+            </ol>
+            <div style={{ ...small, textAlign: 'center' }}>{pair ? <>Waiting for your iPhone… · code valid {mm}</> : 'Making a code…'}</div>
+            {err && <div style={{ fontSize: 11, color: R, textAlign: 'center', marginTop: 6 }}>{err}</div>}
+          </>}
+      <div style={{ ...small, fontSize: 10.5, marginTop: 12, color: 'rgba(255,255,255,0.38)' }}>🔒 End-to-end encrypted: the key is only inside this QR code. Our server only passes on unreadable bytes once and deletes them on pickup (or after 10 minutes). This browser's VitaIQ data is replaced by your iPhone's.</div>
+    </Modal>
+  )
+}
+
+function SendModal({ target, onClose }) {
+  const [state, setState] = useState('ask') // ask | busy | done | error | empty
+  const [err, setErr] = useState('')
+  useEffect(() => { import('../lib/handoff').then(m => { if (!m.hasLocalData()) setState('empty') }) }, [])
+  const send = async () => {
+    setState('busy')
+    try { const m = await import('../lib/handoff'); await m.sendLocalData(target); setState('done') }
+    catch (e) { setErr(e.message || String(e)); setState('error') }
+  }
+  return (
+    <Modal onClose={onClose}>
+      <Label>💻 Send to computer</Label>
+      {state === 'done'
+        ? <div style={{ textAlign: 'center', padding: '12px 0' }}><div style={{ fontSize: 34 }}>✅</div><div style={{ fontWeight: 800, margin: '8px 0 6px' }}>Sent</div><div style={small}>Your dashboard is opening on the computer. You can close this.</div><button onClick={onClose} style={{ ...btn(false), marginTop: 14 }}>Done</button></div>
+        : state === 'empty'
+          ? <><div style={{ ...small, marginBottom: 14 }}>This browser has no VitaIQ data yet. Run <b style={{ color: '#fff' }}>Sync from iPhone</b> first, then scan the code on your computer again.</div><button onClick={onClose} style={btn()}>OK</button></>
+          : <>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 14 }}>Send your VitaIQ data from this iPhone to the computer that's showing the QR code? Only do this with a screen you're using yourself.</div>
+            <button onClick={send} disabled={state === 'busy'} style={{ ...btn(), opacity: state === 'busy' ? 0.6 : 1 }}>{state === 'busy' ? 'Sending…' : 'Send to computer'}</button>
+            <button onClick={onClose} style={{ ...btn(false), marginTop: 8 }}>Cancel</button>
+            {err && <div style={{ fontSize: 11.5, color: R, marginTop: 10, lineHeight: 1.5 }}>{err}</div>}
+            <div style={{ ...small, fontSize: 10.5, marginTop: 12, color: 'rgba(255,255,255,0.38)' }}>🔒 Encrypted on this phone; only that screen holds the key. Deleted from the relay on pickup or after 10 minutes.</div>
+          </>}
+    </Modal>
+  )
+}
+
+// Mounted once in App: QR modal on the computer, "Send to computer" on the iPhone
+export function HandoffLayer() {
+  const [pairing, setPairing] = useState(false)
+  const [target, setTarget] = useState(null)
+  useEffect(() => {
+    const open = () => setPairing(true)
+    const check = async () => {
+      if (!(location.hash || '').startsWith('#send=')) return
+      const { parseSendHash } = await import('../lib/handoff')
+      const t = parseSendHash(location.hash)
+      history.replaceState(null, '', location.pathname + location.search) // keep the key out of history
+      if (t) setTarget(t)
+    }
+    check()
+    window.addEventListener('vitaiq:pair', open); window.addEventListener('hashchange', check)
+    return () => { window.removeEventListener('vitaiq:pair', open); window.removeEventListener('hashchange', check) }
+  }, [])
+  return <>
+    {pairing && <PairingModal onClose={() => setPairing(false)} />}
+    {target && <SendModal target={target} onClose={() => setTarget(null)} />}
+  </>
 }

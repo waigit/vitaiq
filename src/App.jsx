@@ -6,7 +6,7 @@ import { getOrCreateUser, FREE_UPLOAD_LIMIT } from './lib/supabase.js'
 import { mergeUpload, clearHistory } from './lib/history.js'
 import { buildFromSync, summarizeSync } from './lib/shortcutSync.js'
 import { trackUpload } from './lib/supabase.js'
-import { SyncToast } from './components/Extras.jsx'
+import { SyncToast, HandoffLayer } from './components/Extras.jsx'
 
 function getSavedData() {
   try {
@@ -103,7 +103,7 @@ function App() {
     m = () => {
       i(null), p(true), r("dashboard");
     };
-  const toast = <SyncToast status={syncStatus} onClose={() => setSyncStatus(null)} />;
+  const toast = <><SyncToast status={syncStatus} onClose={() => setSyncStatus(null)} /><HandoffLayer /></>;
   return <>{toast}{t === "admin" ? <Admin onBack={() => r("landing")} /> : t === "dashboard" ? <Dashboard healthData={n} uploadCount={o} freeLimit={FREE_UPLOAD_LIMIT} onBack={x} lang={u} onLangChange={h} nutritionOnly={c} initialTab={c ? "nutrition" : "today"} onClearHistory={() => { clearHistory(); saveData(null); i(null); r("landing"); }} /> : <Landing onUpload={v} onLimitReached={w} uploadCount={o} freeLimit={FREE_UPLOAD_LIMIT} onDemo={y} onNutritionOnly={m} onGoToDashboard={g} hasExistingData={!!getSavedData()} lastUploadedAt={(b = (O = getSavedData()) == null ? undefined : O.meta) == null ? undefined : b.uploadedAt} lang={u} onLangChange={h} />}</>;
 }
 

@@ -9,7 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@netlify/blobs": "10.7.13",
     "pako": "2.1.0",
+    "qrcode-generator": "2.0.4",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "recharts": "2.12.7"
