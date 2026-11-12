@@ -209,9 +209,12 @@ export function SyncFromIPhone({ compact = false }) {
       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 10, lineHeight: 1.6 }}>
         When the shortcut asks <b style={{ color: 'rgba(255,255,255,0.75)' }}>How many days?</b> type: <b style={{ color: 'rgba(255,255,255,0.75)' }}>7</b> quick top-up · <b style={{ color: 'rgba(255,255,255,0.75)' }}>30</b> recommended · <b style={{ color: 'rgba(255,255,255,0.75)' }}>90–180</b> longer history (can take a minute). Workout heart rate always covers the last 7 days, so sync weekly to keep every session.
       </div>
-      {ios && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 6, lineHeight: 1.6 }}>
-        💻 <b style={{ color: 'rgba(255,255,255,0.75)' }}>Bigger screen?</b> Open vitalstats.netlify.app on your computer, tap <b style={{ color: 'rgba(255,255,255,0.75)' }}>Bring data from my iPhone</b> and scan the QR code with your Camera.
-      </div>}
+      {ios && <>
+        <button onClick={openScanner} style={{ display: 'block', width: '100%', marginTop: 10, textAlign: 'center', background: 'transparent', color: G, border: '1px solid rgba(0,255,136,0.5)', borderRadius: 12, padding: '10px 14px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}>💻 Send to computer</button>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 6, lineHeight: 1.6 }}>
+          <b style={{ color: 'rgba(255,255,255,0.75)' }}>Bigger screen?</b> Open vitalstats.netlify.app on your computer, tap <b style={{ color: 'rgba(255,255,255,0.75)' }}>View your iPhone data here</b>, then tap Send to computer here and scan its QR code.
+        </div>
+      </>}
       <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 6, lineHeight: 1.6 }}>
         {SHORTCUT_INSTALL_URL ? <>First time? <a href={SHORTCUT_INSTALL_URL} target="_blank" rel="noopener" style={{ color: G, fontWeight: 700 }}>Get the free “{SHORTCUT_NAME}” shortcut</a> (one tap, on your iPhone) · <a href="/shortcut.html" style={{ color: G }}>how it works</a>.</> : <>Needs the free “{SHORTCUT_NAME}” shortcut — <a href="/shortcut.html" style={{ color: G }}>setup guide</a>.</>}
       </div>
@@ -294,14 +297,65 @@ function PairingModal({ onClose }) {
           : <>
             <div style={{ background: '#fff', borderRadius: 12, padding: 8, width: 220, height: 220, margin: '0 auto 14px' }} dangerouslySetInnerHTML={{ __html: svg }} />
             <ol style={{ ...small, color: 'rgba(255,255,255,0.7)', paddingLeft: 18, margin: '0 0 10px' }}>
-              <li>On your iPhone, open the <b style={{ color: '#fff' }}>Camera app</b> and point it at this code (not a scanner inside another app).</li>
-              <li>Tap the <b style={{ color: '#fff' }}>vitalstats.netlify.app</b> link — it opens VitaIQ in Safari.</li>
-              <li>Tap <b style={{ color: '#fff' }}>Send to computer</b>. Your dashboard appears here in a few seconds.</li>
+              <li>On your iPhone, open VitaIQ where you see your dashboard (Safari or the Home Screen icon).</li>
+              <li>On the Today tab tap <b style={{ color: '#fff' }}>💻 Send to computer</b> and point it at this code.</li>
+              <li>Your dashboard appears here in a few seconds.</li>
             </ol>
             <div style={{ ...small, textAlign: 'center' }}>{pair ? <>Waiting for your iPhone… · code valid {mm}</> : 'Making a code…'}</div>
             {err && <div style={{ fontSize: 11, color: R, textAlign: 'center', marginTop: 6 }}>{err}</div>}
           </>}
       <div style={{ ...small, fontSize: 10.5, marginTop: 12, color: 'rgba(255,255,255,0.38)' }}>🔒 End-to-end encrypted: the key is only inside this QR code. Our server only passes on unreadable bytes once and deletes them on pickup (or after 10 minutes). This browser's VitaIQ data is replaced by your iPhone's.</div>
+    </Modal>
+  )
+}
+
+export const openScanner = () => window.dispatchEvent(new Event('vitaiq:scan'))
+
+// iPhone: scan the computer's QR code from inside VitaIQ, so the data is sent from the
+// same place the dashboard lives (Safari and Home Screen apps keep separate storage)
+function ScanModal({ onFound, onClose }) {
+  const [err, setErr] = useState('')
+  useEffect(() => {
+    let stream, raf, stop = false
+    const video = document.getElementById('vitaiq-scan-video')
+    ;(async () => {
+      try {
+        const [{ default: jsQR }, { parseSendHash }] = await Promise.all([import('jsqr'), import('../lib/handoff')])
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+        if (stop) return
+        video.srcObject = stream; await video.play()
+        const canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently: true })
+        let last = 0
+        const loop = t => {
+          if (stop) return
+          raf = requestAnimationFrame(loop)
+          if (t - last < 150 || !video.videoWidth) return
+          last = t
+          const w = Math.min(720, video.videoWidth), h = Math.round(video.videoHeight * w / video.videoWidth)
+          canvas.width = w; canvas.height = h; ctx.drawImage(video, 0, 0, w, h)
+          const code = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' })
+          if (!code) return
+          let target = null
+          try { target = parseSendHash(new URL(code.data).hash) } catch {}
+          if (target) { stop = true; onFound(target) } else setErr("That's not a VitaIQ code. Point at the QR code on your computer.")
+        }
+        raf = requestAnimationFrame(loop)
+      } catch (e) {
+        setErr(e && e.name === 'NotAllowedError' ? 'Camera access was blocked. Allow the camera for this site (aA menu or Settings → Safari → Camera) and try again.' : `Couldn't start the camera: ${e.message || e}`)
+      }
+    })()
+    return () => { stop = true; cancelAnimationFrame(raf); if (stream) stream.getTracks().forEach(t => t.stop()) }
+  }, [])
+  return (
+    <Modal onClose={onClose}>
+      <Label>💻 Send to computer</Label>
+      <div style={{ ...small, color: 'rgba(255,255,255,0.7)', marginBottom: 10 }}>On your computer open <b style={{ color: '#fff' }}>vitalstats.netlify.app</b> → <b style={{ color: '#fff' }}>View your iPhone data here</b>, then point this at the QR code.</div>
+      <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', background: '#000', aspectRatio: '1 / 1' }}>
+        <video id="vitaiq-scan-video" playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        <div style={{ position: 'absolute', inset: '18%', border: `2px solid ${G}`, borderRadius: 12, boxShadow: '0 0 0 9999px rgba(0,0,0,0.35)' }} />
+      </div>
+      {err && <div style={{ fontSize: 11.5, color: R, marginTop: 10, lineHeight: 1.5 }}>{err}</div>}
+      <button onClick={onClose} style={{ ...btn(false), marginTop: 12 }}>Cancel</button>
     </Modal>
   )
 }
@@ -322,10 +376,9 @@ function SendModal({ target, onClose }) {
         ? <div style={{ textAlign: 'center', padding: '12px 0' }}><div style={{ fontSize: 34 }}>✅</div><div style={{ fontWeight: 800, margin: '8px 0 6px' }}>Sent</div><div style={small}>Your dashboard is opening on the computer. You can close this.</div><button onClick={onClose} style={{ ...btn(false), marginTop: 14 }}>Done</button></div>
         : state === 'empty'
           ? <>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 14 }}>This view has no VitaIQ data. The code probably opened in an app's built-in browser, which can't see your synced data — that lives in <b style={{ color: '#fff' }}>Safari</b>.</div>
-            {isAppleMobile() && <a href={`x-safari-https://${location.host}/#send=${target.id}.${target.key}`} style={btn()}>Open in Safari and send</a>}
-            <button onClick={onClose} style={{ ...btn(!isAppleMobile()), marginTop: 8 }}>{isAppleMobile() ? 'Cancel' : 'OK'}</button>
-            <div style={{ ...small, marginTop: 12 }}>If Safari has no data either, tap <b style={{ color: '#fff' }}>Sync from iPhone</b> there first, then scan the code on your computer again.</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 10 }}>This browser has no VitaIQ data, so there's nothing to send from here.</div>
+            <div style={{ ...small, color: 'rgba(255,255,255,0.65)', marginBottom: 14 }}>Open VitaIQ <b style={{ color: '#fff' }}>where you normally see your dashboard</b> (e.g. the VitaIQ icon on your Home Screen), tap <b style={{ color: '#fff' }}>💻 Send to computer</b> on the Today tab and point it at the code on your computer.</div>
+            <button onClick={onClose} style={btn()}>OK</button>
           </>
           : <>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 14 }}>Send your VitaIQ data from this iPhone to the computer that's showing the QR code? Only do this with a screen you're using yourself.</div>
@@ -342,8 +395,11 @@ function SendModal({ target, onClose }) {
 export function HandoffLayer() {
   const [pairing, setPairing] = useState(false)
   const [target, setTarget] = useState(null)
+  const [scanning, setScanning] = useState(false)
   useEffect(() => {
     const open = () => setPairing(true)
+    const scan = () => setScanning(true)
+    window.addEventListener('vitaiq:scan', scan)
     const check = async () => {
       if (!(location.hash || '').startsWith('#send=')) return
       const { parseSendHash } = await import('../lib/handoff')
@@ -353,10 +409,11 @@ export function HandoffLayer() {
     }
     check()
     window.addEventListener('vitaiq:pair', open); window.addEventListener('hashchange', check)
-    return () => { window.removeEventListener('vitaiq:pair', open); window.removeEventListener('hashchange', check) }
+    return () => { window.removeEventListener('vitaiq:pair', open); window.removeEventListener('vitaiq:scan', scan); window.removeEventListener('hashchange', check) }
   }, [])
   return <>
     {pairing && <PairingModal onClose={() => setPairing(false)} />}
+    {scanning && <ScanModal onFound={t => { setScanning(false); setTarget(t) }} onClose={() => setScanning(false)} />}
     {target && <SendModal target={target} onClose={() => setTarget(null)} />}
   </>
 }
