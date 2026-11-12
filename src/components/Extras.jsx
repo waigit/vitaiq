@@ -294,7 +294,7 @@ function PairingModal({ onClose }) {
           : <>
             <div style={{ background: '#fff', borderRadius: 12, padding: 8, width: 220, height: 220, margin: '0 auto 14px' }} dangerouslySetInnerHTML={{ __html: svg }} />
             <ol style={{ ...small, color: 'rgba(255,255,255,0.7)', paddingLeft: 18, margin: '0 0 10px' }}>
-              <li>On your iPhone, open the <b style={{ color: '#fff' }}>Camera</b> and point it at this code.</li>
+              <li>On your iPhone, open the <b style={{ color: '#fff' }}>Camera app</b> and point it at this code (not a scanner inside another app).</li>
               <li>Tap the <b style={{ color: '#fff' }}>vitalstats.netlify.app</b> link — it opens VitaIQ in Safari.</li>
               <li>Tap <b style={{ color: '#fff' }}>Send to computer</b>. Your dashboard appears here in a few seconds.</li>
             </ol>
@@ -321,7 +321,12 @@ function SendModal({ target, onClose }) {
       {state === 'done'
         ? <div style={{ textAlign: 'center', padding: '12px 0' }}><div style={{ fontSize: 34 }}>✅</div><div style={{ fontWeight: 800, margin: '8px 0 6px' }}>Sent</div><div style={small}>Your dashboard is opening on the computer. You can close this.</div><button onClick={onClose} style={{ ...btn(false), marginTop: 14 }}>Done</button></div>
         : state === 'empty'
-          ? <><div style={{ ...small, marginBottom: 14 }}>This browser has no VitaIQ data yet. Run <b style={{ color: '#fff' }}>Sync from iPhone</b> first, then scan the code on your computer again.</div><button onClick={onClose} style={btn()}>OK</button></>
+          ? <>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 14 }}>This view has no VitaIQ data. The code probably opened in an app's built-in browser, which can't see your synced data — that lives in <b style={{ color: '#fff' }}>Safari</b>.</div>
+            {isAppleMobile() && <a href={`x-safari-https://${location.host}/#send=${target.id}.${target.key}`} style={btn()}>Open in Safari and send</a>}
+            <button onClick={onClose} style={{ ...btn(!isAppleMobile()), marginTop: 8 }}>{isAppleMobile() ? 'Cancel' : 'OK'}</button>
+            <div style={{ ...small, marginTop: 12 }}>If Safari has no data either, tap <b style={{ color: '#fff' }}>Sync from iPhone</b> there first, then scan the code on your computer again.</div>
+          </>
           : <>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.6, marginBottom: 14 }}>Send your VitaIQ data from this iPhone to the computer that's showing the QR code? Only do this with a screen you're using yourself.</div>
             <button onClick={send} disabled={state === 'busy'} style={{ ...btn(), opacity: state === 'busy' ? 0.6 : 1 }}>{state === 'busy' ? 'Sending…' : 'Send to computer'}</button>
